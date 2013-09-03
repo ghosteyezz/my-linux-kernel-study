@@ -8,10 +8,12 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+/*SH 130904-1 START*/
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 
 	.arch	armv7-a
+	/*SH 타깃 CPU가 armv7-a임을 나타냄*/
 /*
  * Debugging stuff
  *
@@ -24,6 +26,13 @@
 #if defined(CONFIG_DEBUG_ICEDCC)
 
 #if defined(CONFIG_CPU_V6) || defined(CONFIG_CPU_V6K) || defined(CONFIG_CPU_V7)
+		/*SH 130904
+		 * GNU ASM 매크로함수 정의 : 인자 사용시 '/'를 앞에 붙인다.
+		 * .macro [함수이름], [인자1], [인자2], ..
+		 * 명령어 /인자1
+		 * 명령어 /인자2
+		 * .endm
+		 * */
 		.macro	loadsp, rb, tmp
 		.endm
 		.macro	writeb, ch, rb
@@ -114,6 +123,9 @@
 #endif
 		.endm
 
+/*SH 130904
+ * arch/arm/boot/compressed/vmlinux.lds 에 의하여 아래 .section ".start"가 '*(.start)'이므로 커널의 시작점이 된다.
+ * */
 		.section ".start", #alloc, #execinstr
 /*
  * sort out different calling conventions
@@ -123,19 +135,32 @@
 start:
 		.type	start,#function
 		.rept	7
+		/*SH 실제 코드의 시작*/
 		mov	r0, r0
 		.endr
    ARM(		mov	r0, r0		)
    ARM(		b	1f		)
  THUMB(		adr	r12, BSYM(1f)	)
  THUMB(		bx	r12		)
+/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
+/*SH 130904
+ * arch/arm/include/asm/unified.h 에서
+ * 커널 설정 CONFIG_THUMB2_KERNEL 의 설정 유무에 의하여,
+ * ARM(), THUMB() 의 코드 유무가 결정된다.
+ * CONFIG_THUMB2_KERNEL=y 이면 THUMB() 부분의 코드가 남고,
+ * n이면 ARM() 부분의 코드가 남는다.
+ * */
 
 		.word	0x016f2818		@ Magic numbers to help the loader
+		/*SH 코드 Running시의 'start', '_edata' 라벨의  주소값이 아닌 절대 주소값이다.*/
 		.word	start			@ absolute load/run zImage address
 		.word	_edata			@ zImage end address
  THUMB(		.thumb			)
 1:
 		mrs	r9, cpsr
+		/*SH r9 = cpsr*/
+/*SH 130904-1 END*/
+/*SH NEXT-START*/
 #ifdef CONFIG_ARM_VIRT_EXT
 		bl	__hyp_stub_install	@ get into SVC mode, reversibly
 #endif
