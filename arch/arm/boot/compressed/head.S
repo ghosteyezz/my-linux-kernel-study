@@ -124,33 +124,52 @@
 		.endm
 
 /*SH 130904
+ * 부트로더로 부터 초기 넘어오는 레지스터 값들
+ * 참조 : Vincent Sanders, Booting ARM Linux
+ * r0 = Must be 0
+ * r1 = ARM Linux Machine type = architecture ID
+ * r2 = The Physical address of the parameter list
+ * */
+/*SH 130904
+ * zImage 관련 정보 - 이건 zImage를 이렇게 만들어야 된다는 우리들만의 약속~
+ * zImage start + 0x24 = Magic number(0x016f2818)
+ * zImage start + 0x28 = abs zImage start address(start)
+ * zImage start + 0x2c = abs zImage end address(_edata)
+ * */
+/*SH 130904
  * arch/arm/boot/compressed/vmlinux.lds 에 의하여 아래 .section ".start"가 '*(.start)'이므로 커널의 시작점이 된다.
  * */
 		.section ".start", #alloc, #execinstr
+		/*SH .section "섹션이름", 속성1, 속성2 : GNU LD에서 링크스크립터파일에서 사용하는 섹션 식별자 정의*/
+		/*SH #alloc : 할당가능, #execinstr : 실행가능*/
+		/*SH 여기서는 arch/arm/boot/compressed/vmlinux.lds 의 '*(.start)'가 .section ".start"임*/
 /*
  * sort out different calling conventions
  */
 		.align
+		/*SH .align : 다음에 올 코드의 정렬 간격을 나타냄. 기본값 2*/
+		/*SH ex>.align 3 : arm에서는 2^3 = 8 byte 간격으로 정렬*/
+		/*SH               i386에서는 걍 3 byte 간격으로 정렬*/
 		.arm				@ Always enter in ARM state
 start:
 		.type	start,#function
 		.rept	7
+		/*SH .rept # : .endr을 만나기 전까지의 명령어를 #번 반복하여 어셈블함*/
 		/*SH 실제 코드의 시작*/
 		mov	r0, r0
 		.endr
    ARM(		mov	r0, r0		)
+		/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
    ARM(		b	1f		)
+		/*SH 라벨 '1'(f:앞으로 주소값, b:이미 지나온 주소값) 으로 분기*/
  THUMB(		adr	r12, BSYM(1f)	)
  THUMB(		bx	r12		)
-/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
 /*SH 130904
- * arch/arm/include/asm/unified.h 에서
- * 커널 설정 CONFIG_THUMB2_KERNEL 의 설정 유무에 의하여,
- * ARM(), THUMB() 의 코드 유무가 결정된다.
- * CONFIG_THUMB2_KERNEL=y 이면 THUMB() 부분의 코드가 남고,
- * n이면 ARM() 부분의 코드가 남는다.
+ * ARM(), THUMB()
+ * arch/arm/include/asm/unified.h 에서 커널 설정 CONFIG_THUMB2_KERNEL 의 설정 유무에 의하여,
+ * y : THUMB() 부분의 코드가 남는다.
+ * n : ARM() 부분의 코드가 남는다. -> 여기서는 'n'
  * */
-
 		.word	0x016f2818		@ Magic numbers to help the loader
 		/*SH 코드 Running시의 'start', '_edata' 라벨의  주소값이 아닌 절대 주소값이다.*/
 		.word	start			@ absolute load/run zImage address
@@ -159,13 +178,52 @@ start:
 1:
 		mrs	r9, cpsr
 		/*SH r9 = cpsr*/
+/*SH 130904
+ * ARMv7 Format of the CPSR and SPSRs - 출처 : A.R.M B1.3.3 Program Status Registers(PSRs)
+ * 
+ *
+ * |31|30|29|28|27|26 25|24|23       20|19       16|15             10|09|08|07|06|05|04          00|
+ * |-----------------------------------------------------------------------------------------------|
+ * |  |  |  |  |  |     |  |           |           |                 |  |  |  |  |  |              |
+ * | N| Z| C| V| Q|     | J|   Reserved|    GE[3:0]|          IT[7:2]| E| A| I| F| T|        M[4:0]|
+ * |  |  |  |  |  |     |  |           |           |                 |  |  |  |  |  |              |
+ * |-----------------------------------------------------------------------------------------------|
+ * |31|30|29|28|27|26|25|24|23|22|21|20|19|18|17|16|15|14|13|12|11|10|09|08|07|06|05|04|03|02|01|00|
+ *
+ * N: 계산의 결과가 음수일 때 1로 체크된다.
+ * Z: 계산의 결과가 0일 때 1로 체크된다.
+ * C: 계산 결과에 캐리가 발생하거나, 나눗셈할 때 자리 빌림이 발생하면 1로 체크된다.
+ * V: 계산 결과에 오버플로우가 발생하면 1로 체크된다.
+ * Q: 곱셈을 계산할 때 32비트를 넘어가는 올림수에 이용한다.
+ * J: Cortex-A 이상 프로세서에서 Jazelle 상태로 변경시 1로 체크된다.
+ * GE: SIMD(Single Instruction Multiple Data: 하나의 명령으로 여러 개의 데이터를 동시에 처리) 명령을 사용해서 연산을 할 때 하프워드 단위로 크거나 같은지를 표시하는 비트
+ * IT: ITSTATE로 Thumb-2에 포함된 IT(If-then) 명령어를 위한 필드이다. 원래 Thumb 명령어는 conditional execution이 안되는데 이 명령어와 IT Field로 conditional execution을 할 수 있도록 만든 것이다.
+ * E: 데이터의 엔디언을 표시하는 비트
+ * A: 예측가능한 data abort만 발생하도록 체크, 이 비트를 끄면 예측 불가능한 asynchronous data abort의 발생을 허용한다.
+ * I: 이 비트가 켜져 있으면 IRQ 비활성화
+ * F: 이 비트가 켜져 있으면 FIQ 비활성화
+ * T: Thumb 상태일 때 1로 체크
+ * M: 모드 비트, 각 동작 모드 별로 모드 비트의 값은 아래와 같다.
+ * 10000: User
+ * 10001: FIQ
+ * 10010: IRQ
+ * 10011: Supervisor
+ * 10111: Abort
+ * 11011: Undefined
+ * 11111: System
+ *
+ * */
 /*SH 130904-1 END*/
-/*SH NEXT-START*/
+/*SH 130904-2 START*/
 #ifdef CONFIG_ARM_VIRT_EXT
+		/*SH FIXME : 가상화 지원과 관련한 코드*/
 		bl	__hyp_stub_install	@ get into SVC mode, reversibly
+		/*SH bl : lr(r14) 에 다음 명령어 주소값을 저장 후 분기*/
 #endif
 		mov	r7, r1			@ save architecture ID
+		/*SH r7 = architecture ID*/
 		mov	r8, r2			@ save atags pointer
+		/*SH r8 = atags pointer*/
 
 		/*
 		 * Booting from Angel - need to enter SVC mode and disable
@@ -174,12 +232,20 @@ start:
 		 */
 		mrs	r2, cpsr		@ get current mode
 		tst	r2, #3			@ not user?
+		/*SH tst : r2 AND 3 에서 CPSR 플래그 업데이트*/
 		bne	not_angel
+		/*SH ne : 조건필드 같지 않음 : CPSR의 Z 비트가 0이면 true, 1이면 false*/
+		/*SH true면 tst의 결과가 0이라는 뜻으로 결국 현재 모드가 user 모드인 것이 확인되고, user모드라면 not_angel로 분기하지 않고 계속진행*/
 		mov	r0, #0x17		@ angel_SWIreason_EnterSVC
+		/*SH r0 = 0x17*/
  ARM(		swi	0x123456	)	@ angel_SWI_ARM
+		 /*SH FIXME : swi 를 발생하여 Supervisor 모드로 전환하는 듯 하지만 원리를 모르겠음 */
  THUMB(		svc	0xab		)	@ angel_SWI_THUMB
 not_angel:
+/*SH 130904-2 END*/
+/*SH NEXT-START*/
 		safe_svcmode_maskall r0
+		/*SH arch/arm/include/asm/assembler.h safe_svcmode_maskall*/
 		msr	spsr_cxsf, r9		@ Save the CPU boot mode in
 						@ SPSR
 		/*
