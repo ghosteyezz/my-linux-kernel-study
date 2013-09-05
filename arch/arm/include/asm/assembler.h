@@ -262,8 +262,27 @@
  * This macro is intended for forcing the CPU into SVC mode at boot time.
  * you cannot return to the original mode.
  */
+/*SH 130905
+* arch/arm/boot/compressed/head.S 호출한 safe_svcmode_maskall은 다음과 같이 수행됨 인자 reg = r0 
 .macro safe_svcmode_maskall reg:req
-#if __LINUX_ARM_ARCH__ >= 6
+	mrs	r0 , cpsr					//SH r0 = cpsr
+	eor	r0, r0, #HYP_MODE				//SH 현재 모드와 HYP_MODE의 값을 eor 하면, 현재 모드가 Hyp 모드라면 결과 = 0, 다른 모드라면 = 0이 아님
+	tst	r0, #MODE_MASK					//SH 모드 부분만 0인지 아닌지 검사가 된다. 0이라면(=Hyp모드라면) Z = 1로 됨
+	bic	r0 , r0 , #MODE_MASK				//SH 현재 r0(=cpsr)의 모드부분만 0으로 클리어
+	orr	r0 , r0 , #PSR_I_BIT | PSR_F_BIT | SVC_MODE	//SH r0(=cpsr)cpsr에 I, F비트를 셋하여 인터럽트 비활성화 시키고, 동시에 SVC 모드를 할당한다.
+	bne	1f						//SH 위 tst연산결과 Z = 0이면(=Hyp모드가 아니라면) 라벨'1'로 분기
+	orr	r0, r0, #PSR_A_BIT				//SH 현재 모드가 Hyp모드라면 cpsr에 A비트 셋
+	adr	lr, BSYM(2f)					//SH 현재 모드가 Hyp모드라면 LR = 라벨'2' 주소(복귀주소)
+	msr	spsr_cxsf, r0					//SH 현재 모드가 Hyp모드라면  spsr에 r0값 저장
+	__MSR_ELR_HYP(14)					//SH 현재 모드가 Hyp모드라면 하이퍼바이저 관련 연산수행 뭘하는지는 모르겠음 FIXME
+	__ERET
+1:	msr	cpsr_c, r0					//SH cpsr의 제어 필드 마스크 바이트(cpsr[7:0] = I,F,T,Mode) 만 r0 값으로 업데이트
+2:
+.endm
+* */
+
+.macro safe_svcmode_maskall reg:req
+#if __LINUX_ARM_ARCH__ >= 6	/*SH Y : __LINUX_ARM_ARCH__ : arm/arm/boot/compressed/.head.o.cmd 에 -D__LINUX_ARM_ARCH__=7로 정의*/
 	mrs	\reg , cpsr
 	eor	\reg, \reg, #HYP_MODE
 	tst	\reg, #MODE_MASK

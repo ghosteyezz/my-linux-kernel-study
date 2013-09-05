@@ -153,15 +153,13 @@
 		.arm				@ Always enter in ARM state
 start:
 		.type	start,#function
-		.rept	7
+		.rept	7			
 		/*SH .rept # : .endr을 만나기 전까지의 명령어를 #번 반복하여 어셈블함*/
 		/*SH 실제 코드의 시작*/
 		mov	r0, r0
 		.endr
-   ARM(		mov	r0, r0		)
-		/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
-   ARM(		b	1f		)
-		/*SH 라벨 '1'(f:앞으로 주소값, b:이미 지나온 주소값) 으로 분기*/
+   ARM(		mov	r0, r0		)	/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
+   ARM(		b	1f		)	/*SH 라벨 '1'(f:앞으로 주소값, b:이미 지나온 주소값) 으로 분기*/
  THUMB(		adr	r12, BSYM(1f)	)
  THUMB(		bx	r12		)
 /*SH 130904
@@ -176,8 +174,7 @@ start:
 		.word	_edata			@ zImage end address
  THUMB(		.thumb			)
 1:
-		mrs	r9, cpsr
-		/*SH r9 = cpsr*/
+		mrs	r9, cpsr		/*SH r9 = cpsr*/
 /*SH 130904
  * ARMv7 Format of the CPSR and SPSRs - 출처 : A.R.M B1.3.3 Program Status Registers(PSRs)
  * 
@@ -209,21 +206,25 @@ start:
  * 10010: IRQ
  * 10011: Supervisor
  * 10111: Abort
+ * 11010: Hyp
  * 11011: Undefined
  * 11111: System
+ *
+ * GNU AS PSR 접미사 사용 의미 : cpsr_cxsf, spsr_cxsf 이런 식으로 사용
+ * f : 플래그 필드 마스크 바이트 : [31:24] -> N, Z, C, V, Q, J
+ * s : 상태 필드 마스크 바이트 : [23:16] -> GE
+ * x : 확장 필드 마스크 바이트 : [15:8] -> IT, E, A
+ * c : 제어 필드 마스크 바이트 : [7:0] -> I, F, T, M
  *
  * */
 /*SH 130904-1 END*/
 /*SH 130904-2 START*/
-#ifdef CONFIG_ARM_VIRT_EXT
+#ifdef CONFIG_ARM_VIRT_EXT	/*SH Y*/
 		/*SH FIXME : 가상화 지원과 관련한 코드*/
-		bl	__hyp_stub_install	@ get into SVC mode, reversibly
-		/*SH bl : lr(r14) 에 다음 명령어 주소값을 저장 후 분기*/
+		bl	__hyp_stub_install	@ get into SVC mode, reversibly	/*SH bl : lr(r14) 에 다음 명령어 주소값을 저장 후 분기*/
 #endif
 		mov	r7, r1			@ save architecture ID
-		/*SH r7 = architecture ID*/
 		mov	r8, r2			@ save atags pointer
-		/*SH r8 = atags pointer*/
 
 		/*
 		 * Booting from Angel - need to enter SVC mode and disable
@@ -231,22 +232,18 @@ start:
 		 * We only do this if we were in user mode on entry.
 		 */
 		mrs	r2, cpsr		@ get current mode
-		tst	r2, #3			@ not user?
-		/*SH tst : r2 AND 3 에서 CPSR 플래그 업데이트*/
-		bne	not_angel
-		/*SH ne : 조건필드 같지 않음 : CPSR의 Z 비트가 0이면 true, 1이면 false*/
-		/*SH true면 tst의 결과가 0이라는 뜻으로 결국 현재 모드가 user 모드인 것이 확인되고, user모드라면 not_angel로 분기하지 않고 계속진행*/
+		tst	r2, #3			@ not user?	/*SH tst : r2 AND 3 에서 CPSR 플래그 업데이트*/
+								/*SH tst 연산결과 0이면 CPSR의 Z = 1 -> 이것은 현재 모드가 user 모드임을 나타냄*/
+		bne	not_angel		/*SH ne : 조건필드 같지 않음 : CPSR의 Z 비트가 0이면 ture, 1이면 false*/
+						/*SH 현재 모드가 user 이면 ne조건 필드가 false가 되어 계속진행, user 가 아니라면 true가 되어 not_angel로 분기*/
 		mov	r0, #0x17		@ angel_SWIreason_EnterSVC
-		/*SH r0 = 0x17*/
- ARM(		swi	0x123456	)	@ angel_SWI_ARM
-		 /*SH FIXME : swi 를 발생하여 Supervisor 모드로 전환하는 듯 하지만 원리를 모르겠음 */
+ ARM(		swi	0x123456	)	@ angel_SWI_ARM	/*SH FIXME : swi 를 발생하여 Supervisor 모드로 전환하는 듯 하지만 원리를 모르겠음 */
  THUMB(		svc	0xab		)	@ angel_SWI_THUMB
 not_angel:
 /*SH 130904-2 END*/
-/*SH NEXT-START*/
-		safe_svcmode_maskall r0
-		/*SH arch/arm/include/asm/assembler.h safe_svcmode_maskall*/
-		msr	spsr_cxsf, r9		@ Save the CPU boot mode in
+/*SH 130905-1 START*/
+		safe_svcmode_maskall r0		/*SH arch/arm/include/asm/assembler.h의 safe_svcmode_maskall*/
+		msr	spsr_cxsf, r9		@ Save the CPU boot mode in	/*SH r9 = 부팅 당시 cpsr*/
 						@ SPSR
 		/*
 		 * Note that some cache flushing and other stuff may
@@ -258,13 +255,16 @@ not_angel:
 		 * by the linker here, but it should preserve r7, r8, and r9.
 		 */
 
-		.text
+		.text				/*SH .text 섹션의 시작*/
 
-#ifdef CONFIG_AUTO_ZRELADDR
+#ifdef CONFIG_AUTO_ZRELADDR	/*SH Y*/
 		@ determine final kernel image address
-		mov	r4, pc
-		and	r4, r4, #0xf8000000
-		add	r4, r4, #TEXT_OFFSET
+		mov	r4, pc			/*SH r4 = pc*/
+		and	r4, r4, #0xf8000000	/*SH 하위 주소 클리어*/
+		add	r4, r4, #TEXT_OFFSET	/*SH TEXT_OFFSET : arch/arm/boot/compressed/.head.o.cmd에 -DTEXT_OFFSET=0x00008000으로 정의*/
+						/*SH r4 = 0xXX008000 : XX는 현재 수행되고 있는 주소값임을 유의해야함*/
+						/*SH r4(0xXX008000)은 커널 압축 해제 시작점이 된다.*/
+						/*SH cache_on이 되는 조건이 되면 r4는 cache에 사용할 page_table 마지막 주소값이 된다.*/
 #else
 		ldr	r4, =zreladdr
 #endif
@@ -272,16 +272,25 @@ not_angel:
 		/*
 		 * Set up a page table only if it won't overwrite ourself.
 		 * That means r4 < pc && r4 - 16k page directory > &_end.
+		 * SH 주석 이거 위에 '&&'가 '||'로 바뀌어야 할꺼 같은데... 아놔! 이 주석때문에 두시간 헤맷음!!
 		 * Given that r4 > &_end is most unfrequent, we add a rough
 		 * additional 1MB of room for a possible appended DTB.
 		 */
-		mov	r0, pc
-		cmp	r0, r4
-		ldrcc	r0, LC0+32
-		addcc	r0, r0, pc
-		cmpcc	r4, r0
-		orrcc	r4, r4, #1		@ remember we skipped cache_on
-		blcs	cache_on
+		mov	r0, pc			/*SH r0 = pc*/
+		cmp	r0, r4			/*SH cmp : r0 - r4에서 cpcr 플래그 업데이트*/
+		ldrcc	r0, LC0+32		/*SH cc 조건 필드 : 보다 작음 : FIXME PSR의 어떤 필드를 보고 판단하는지? N,C비트 유력*/
+						/*SH r0 작으면 r0 = *(LC0 + 32) : 라벨 'LC0' + 32 에 있는 데이터 : _end - restart + 16384 + 1024*1024 : restart부터 zImage끝까지 크기 + 16k(page directory) + 1M(room for a DTB)*/
+		addcc	r0, r0, pc		/*SH r0 작으면 r0 += PC : r4가 실행중 기준으로 값이 되어 있으므로 비교위해 실행중 주소를 구하는 느낌?*/
+		cmpcc	r4, r0			/*SH r0 작으면 r4 - r0 에서 cpcr 플래그 업데이트*/
+		orrcc	r4, r4, #1		@ remember we skipped cache_on	/*SH r4 작으면 r4 |= 1 : 주석참고!! 이 명령어가 수행되는 조건은 cache_on을 하지 않는다!*/
+		blcs	cache_on		/*SH 첫번째 cmp에서 r0가 크거나, 두번째 cmpcc에서 r4가 크면 lr=다음명령어 수행 후 cache_on으로 분기한다.*/
+		/*SH 130905
+		 * 압축된 커널의 압축 해제 코드를 수행 하는데 캐시를 사용할 수 있는 조건을 검사 후, 만족하면 cache_on한다.
+		 * 조건 : 캐시에서 사용될 page table을 셋팅하는데 현재 코드를 overwrite 하지 않으면 만사 ok! 그것은 다음 두 조건으로 검사된다.
+		 *        1. pc가 page table 셋팅 마지막주소값 보다 크거나,
+		 *        2. page table 셋팅 시작점 주소값이 로드된 zImage 마지막 주소 + page table크기 + DTB를 위한 주소공간 크기(1MB) 보다 클경우
+		 *        page table이 셋팅가능하여 cache_on 진입!
+		 * */
 
 restart:	adr	r0, LC0
 		ldmia	r0, {r1, r2, r3, r6, r10, r11, r12}
@@ -717,14 +726,26 @@ __armv3_mpu_cache_on:
 		mcr	p15, 0, r0, c7, c0, 0	@ invalidate whole cache v3
 		mov	pc, lr
 
-#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH
+#ifdef CONFIG_CPU_DCACHE_WRITETHROUGH	/*SH N*/
 #define CB_BITS 0x08
 #else
-#define CB_BITS 0x0c
+#define CB_BITS 0x0c	/*SH this*/
 #endif
 
-__setup_mmu:	sub	r3, r4, #16384		@ Page directory size
-		bic	r3, r3, #0xff		@ Align the pointer
+/*SH 130905
+ * __setup_mmu
+ * 초기값
+ * r4 = 0xXX008000 : 압축해제 커널 시작점(page directory의 끝점)
+ * r6 = #CB_BITS | 0x02
+ *
+ * r1 은 page table에 저장될 Section format로 사용된다.
+ *
+ *
+ * */
+/*SH 130905-1 END*/
+/*SH NEXT-START*/
+__setup_mmu:	sub	r3, r4, #16384		@ Page directory size	/*SH r3 = page directory 시작점*/
+		bic	r3, r3, #0xff		@ Align the pointer	/*SH 하위 주소값 Align*/
 		bic	r3, r3, #0x3f00
 /*
  * Initialise the page tables, turning on the cacheable and bufferable
@@ -732,8 +753,8 @@ __setup_mmu:	sub	r3, r4, #16384		@ Page directory size
  */
 		mov	r0, r3
 		mov	r9, r0, lsr #18
-		mov	r9, r9, lsl #18		@ start of RAM
-		add	r10, r9, #0x10000000	@ a reasonable RAM size
+		mov	r9, r9, lsl #18		@ start of RAM			/*SH r3 = RAM의 시작 주소값 : r3의 하위 18비트를 0으로 클리어 하여 RAM의 시작점을 구한다.*/
+		add	r10, r9, #0x10000000	@ a reasonable RAM size		/*SH r10 = RAM의 끝 주소값 : 넉넉히 사이즈를 계산해준다. 여기서는 256MB */
 		mov	r1, #0x12		@ XN|U + section mapping
 		orr	r1, r1, #3 << 10	@ AP=11
 		add	r2, r3, #16384
@@ -800,11 +821,11 @@ __armv4_mmu_cache_on:
 		mov	pc, r12
 
 __armv7_mmu_cache_on:
-		mov	r12, lr
-#ifdef CONFIG_MMU
-		mrc	p15, 0, r11, c0, c1, 4	@ read ID_MMFR0
-		tst	r11, #0xf		@ VMSA
-		movne	r6, #CB_BITS | 0x02	@ !XN
+		mov	r12, lr			/*SH r12 = lr : arch/arm/boot/compressed/head.S의 cache_on 분기시 저장된 lr 값을 r12에 저장 해 둔다.*/
+#ifdef CONFIG_MMU	/*SH Y*/
+		mrc	p15, 0, r11, c0, c1, 4	@ read ID_MMFR0	/*SH A.R.M B4.1.89 ID_MMFR0, Memory Model Feature Register 0, VMSA*/
+		tst	r11, #0xf		@ VMSA		/*SH VMSA support[3:0] 필드를 검사 : 0x0만 아니면 뭔가 지원되는 것임 A.R.M에 보면 현재 분석중인 ARMv7-a는 0b0011(0x03) 일 가능성이 큼*/
+		movne	r6, #CB_BITS | 0x02	@ !XN		/*SH VMSA 필드 검사 결과 0이 아니면 r6 = CB_BITS | 0x02*/
 		blne	__setup_mmu
 		mov	r0, #0
 		mcr	p15, 0, r0, c7, c10, 4	@ drain write buffer
@@ -818,8 +839,8 @@ __armv7_mmu_cache_on:
 		bic	r0, r0, #2		@ A (no unaligned access fault)
 		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)
 						@ (needed for ARM1176)
-#ifdef CONFIG_MMU
-#ifdef CONFIG_CPU_ENDIAN_BE8
+#ifdef CONFIG_MMU	/*SH Y*/
+#ifdef CONFIG_CPU_ENDIAN_BE8	/*SH N*/
 		orr	r0, r0, #1 << 25	@ big-endian page tables
 #endif
 		mrcne   p15, 0, r6, c2, c0, 2   @ read ttb control reg
@@ -884,12 +905,32 @@ __common_mmu_cache_on:
  *  r12 = corrupted
  */
 
-call_cache_fn:	adr	r12, proc_types
-#ifdef CONFIG_CPU_CP15
-		mrc	p15, 0, r9, c0, c0	@ get processor ID
+/*SH 130905
+ * call_cach_fn : processor ID를 읽어온 후, proc_types 구조체 배열을 차례대로 읽어와 processor ID에 맞는 cache 연산 함수를 호출해 준다.
+ * 이때, r3 값이 어떤 cache 연산 함수를 호출 할지 결정한다.
+ * r3 = 8 -> cache_on 호출
+ * r3 = 12 -> cache_off 호출
+ * r3 = 16 -> cache_flush 호출
+ * 된다.
+ * */
+call_cache_fn:	adr	r12, proc_types		/*SH r12 = 라벨 'proc_types'의 주소값*/
+#ifdef CONFIG_CPU_CP15	/*SH Y*/
+		mrc	p15, 0, r9, c0, c0	@ get processor ID	/*SH A.R.M B4.1.105 MIDR, Main ID Register, VMSA*/
+									/*SH r9 = MIDR*/
+									/*SH MIDR 필드중 [19:16] Architecture 필드를 조사하는데 현재 ARMv7 분석중이니 : 0xF 값이 될것이다.*/
 #else
 		ldr	r9, =CONFIG_PROCESSOR_ID
 #endif
+/*SH 130905
+ * ARMv7의 proc_types는
+.word	0x000f0000		@ new CPU Id
+.word	0x000f0000
+W(b)	__armv7_mmu_cache_on
+W(b)	__armv7_mmu_cache_off
+W(b)	__armv7_mmu_cache_flush
+ * 이다.
+ * 결국 아래 루프는 위 proc_types에서 cache 연산 함수가 호출된다.
+ * */
 1:		ldr	r1, [r12, #0]		@ get value
 		ldr	r2, [r12, #4]		@ get mask
 		eor	r1, r1, r9		@ (real ^ match)
