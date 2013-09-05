@@ -279,10 +279,11 @@ not_angel:
 		mov	r0, pc			/*SH r0 = pc*/
 		cmp	r0, r4			/*SH cmp : r0 - r4에서 cpcr 플래그 업데이트*/
 		ldrcc	r0, LC0+32		/*SH cc 조건 필드 : 보다 작음 : FIXME PSR의 어떤 필드를 보고 판단하는지? N,C비트 유력*/
-						/*SH r0 작으면 r0 = *(LC0 + 32) : 라벨 'LC0' + 32 에 있는 데이터 : _end - restart + 16384 + 1024*1024 : restart부터 zImage끝까지 크기 + 16k(page directory) + 1M(room for a DTB)*/
+						/*SH r0 작으면 r0 = *(LC0 + 32) : 라벨 'LC0' + 32 에 있는 데이터 로드*/
+						/*SH _end - restart + 16384 + 1024*1024 : restart부터 zImage끝까지 크기 + 16k(page directory) + 1M(room for a DTB)*/
 		addcc	r0, r0, pc		/*SH r0 작으면 r0 += PC : r4가 실행중 기준으로 값이 되어 있으므로 비교위해 실행중 주소를 구하는 느낌?*/
 		cmpcc	r4, r0			/*SH r0 작으면 r4 - r0 에서 cpcr 플래그 업데이트*/
-		orrcc	r4, r4, #1		@ remember we skipped cache_on	/*SH r4 작으면 r4 |= 1 : 주석참고!! 이 명령어가 수행되는 조건은 cache_on을 하지 않는다!*/
+		orrcc	r4, r4, #1		@ remember we skipped cache_on	/*SH r4 작으면 r4 |= 1 : 기억!! 이 명령어가 수행되는 조건은 cache_on을 하지 않는다!*/
 		blcs	cache_on		/*SH 첫번째 cmp에서 r0가 크거나, 두번째 cmpcc에서 r4가 크면 lr=다음명령어 수행 후 cache_on으로 분기한다.*/
 		/*SH 130905
 		 * 압축된 커널의 압축 해제 코드를 수행 하는데 캐시를 사용할 수 있는 조건을 검사 후, 만족하면 cache_on한다.
@@ -292,6 +293,8 @@ not_angel:
 		 *        page table이 셋팅가능하여 cache_on 진입!
 		 * */
 
+/*SH 130905-2 END*/
+/*SH NEXT-START*/
 restart:	adr	r0, LC0
 		ldmia	r0, {r1, r2, r3, r6, r10, r11, r12}
 		ldr	sp, [r0, #28]
@@ -733,17 +736,16 @@ __armv3_mpu_cache_on:
 #endif
 
 /*SH 130905
- * __setup_mmu
+ * __setup_mmu : 0xXX004000~0xXX008000 영역에 page directory를 구성한다. page table은 Section format으로 셋팅된다.
  * 초기값
  * r4 = 0xXX008000 : 압축해제 커널 시작점(page directory의 끝점)
  * r6 = #CB_BITS | 0x02
  *
  * r1 은 page table에 저장될 Section format로 사용된다.
  *
- *
  * */
 /*SH 130905-1 END*/
-/*SH NEXT-START*/
+/*SH 130905-2 START*/
 __setup_mmu:	sub	r3, r4, #16384		@ Page directory size	/*SH r3 = page directory 시작점*/
 		bic	r3, r3, #0xff		@ Align the pointer	/*SH 하위 주소값 Align*/
 		bic	r3, r3, #0x3f00
@@ -751,37 +753,68 @@ __setup_mmu:	sub	r3, r4, #16384		@ Page directory size	/*SH r3 = page directory 
  * Initialise the page tables, turning on the cacheable and bufferable
  * bits for the RAM area only.
  */
+/*SH END 130724-2*/
+/*SH START 130725-1*/
+/*SH 130905
+ * 밑의 루프에서 r1의 값이 page directory에 저장될 page table의 값이다.
+ * Section으로 셋팅하고 format은 아래와 같다.
+ * A.R.M B3.5.1 Short-descriptor translation table format descriptors
+ * Section format
+ * |31:30:29:28|27:26:25:24|23:22:21:20|19:18:17:16|15:14:13:12|11:10:09:08|07:06:05:04|03:02:01:00|
+ * |                                   |  |  |  |  |  |        |     |  |           |  |  |  |  |  |
+ * | Section base address              |NS| 0|nG| S|AP|   TEX  |  AP |xx|   Domain  |XN| C| B| 1| 0|
+ * |                                   |  |  |  |  |  |        |     |  |           |  |  |  |  |  |
+ * | 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0| 8: 4: 2: 0|
+ *
+ * NS : Non-secure
+ * nG : The not global bit
+ * S : The Shareable bit
+ * AP[15], AP[11:10] : Access Permissions bits
+ * TEX[14:12] : Memory region attribute bits
+ * Domain[8:5] : Domain field
+ * XN : The Execute-never bit
+ * C : Cacheable
+ * B : Bufferable
+ * */
 		mov	r0, r3
 		mov	r9, r0, lsr #18
-		mov	r9, r9, lsl #18		@ start of RAM			/*SH r3 = RAM의 시작 주소값 : r3의 하위 18비트를 0으로 클리어 하여 RAM의 시작점을 구한다.*/
-		add	r10, r9, #0x10000000	@ a reasonable RAM size		/*SH r10 = RAM의 끝 주소값 : 넉넉히 사이즈를 계산해준다. 여기서는 256MB */
-		mov	r1, #0x12		@ XN|U + section mapping
-		orr	r1, r1, #3 << 10	@ AP=11
-		add	r2, r3, #16384
-1:		cmp	r1, r9			@ if virt > start of RAM
+		mov	r9, r9, lsl #18		@ start of RAM		/*SH r3 = RAM의 시작 주소값 : r3의 하위 18비트를 0으로 클리어 하여 RAM의 시작점을 구한다.*/
+		add	r10, r9, #0x10000000	@ a reasonable RAM size	/*SH r10 = RAM의 끝 주소값 : 넉넉히 사이즈를 계산해준다. 여기서는 256MB */
+		mov	r1, #0x12		@ XN|U + section mapping/*SH Section 속성  XN[4]=0b1,1[1]=0b1*/
+		orr	r1, r1, #3 << 10	@ AP=11			/*SH Section 속성 AP[11:10] = 0b11.*/
+									/*SH 루프 들어가기 전 최종 Section 속성 : 0xC12*/
+									/*SH 0xC12 -> AP[11:10] = 0b11, XN = 0b1, 1 = 0b1*/
+		add	r2, r3, #16384					/*SH r2 = page directory 끝 주소값 : 루프 종료조건*/
+1:		cmp	r1, r9			@ if virt > start of RAM/*SH Section base address가 RAM인지 검사*/
 		cmphs	r10, r1			@   && end of RAM > virt
-		bic	r1, r1, #0x1c		@ clear XN|U + C + B
-		orrlo	r1, r1, #0x10		@ Set XN|U for non-RAM
-		orrhs	r1, r1, r6		@ set RAM section settings
-		str	r1, [r0], #4		@ 1:1 mapping
-		add	r1, r1, #1048576
-		teq	r0, r2
-		bne	1b
+		bic	r1, r1, #0x1c		@ clear XN|U + C + B	/*SH Section 속성값 초기화*/
+		orrlo	r1, r1, #0x10		@ Set XN|U for non-RAM	/*SH 위 if 조건 false : non-RAM Section 속성은 XN=0b1 -> 0xC12*/
+		orrhs	r1, r1, r6		@ set RAM section settings/*SH 위 if 조건이 true : RAM Section 속성은 r6=#CB_BITS|0x02 : C=0b1,B=0b1,1=0b1 -> 0xC0E*/
+		str	r1, [r0], #4		@ 1:1 mapping		/*SH r0 = 0xXX004000 을 시작으로 Section(r1) 저장 후 r0+=4(주소값 + 4)*/
+		add	r1, r1, #1048576				/*SH 다음 Section base address 셋팅 : 1M단위이다*/
+		teq	r0, r2						/*SH r0가 0xXX008000인지 검사*/
+		bne	1b						/*SH 0xXX008000이 아니면 라벨'1'로 분기*/
 /*
  * If ever we are running from Flash, then we surely want the cache
  * to be enabled also for our execution instance...  We map 2MB of it
  * so there is no map overlap problem for up to 1 MB compressed kernel.
  * If the execution is in RAM then we would only be duplicating the above.
  */
-		orr	r1, r6, #0x04		@ ensure B is set for this
-		orr	r1, r1, #3 << 10
+/*SH 130906
+ * Flash에서 바로 실행 될 경우 를 대비하여 현재 주소영역(pc)에 대한 Section 속성을 RAM 영역과 같이(cacheable, bufferable) 지정해 주어야한다.
+ * 1MB이상의 압축된 커널에 대해 no map overlap problem 땜시 2MB 영역의 Section을 맵핑한다.
+ * 만약 현재 주소 영역이 RAM이라고 하더라도(RAM에서 실행중이라면) 이미 셋팅한 값을 똑같이 셋팅할 뿐이다.
+ * */
+		orr	r1, r6, #0x04		@ ensure B is set for this  /*SH r1=(#CB_BITS|0x02|0x04)*/
+		orr	r1, r1, #3 << 10	/*SH r1 |= AP[11:10] : 0b11*/
+						/*SH Section 속성(r1) : 0xC0E*/
 		mov	r2, pc
 		mov	r2, r2, lsr #20
-		orr	r1, r1, r2, lsl #20
-		add	r0, r3, r2, lsl #2
-		str	r1, [r0], #4
-		add	r1, r1, #1048576
-		str	r1, [r0]
+		orr	r1, r1, r2, lsl #20	/*SH r1 = 현재 주소영역(pc)에서 Section base address + Section 속성 값*/
+		add	r0, r3, r2, lsl #2	/*SH r0 = 0xXX004000 + Section directory에서 현재 주소영역에 대한 Section table위치*/
+		str	r1, [r0], #4		/*SH Section 저장*/
+		add	r1, r1, #1048576	/*SH 2MB영역 지정위해 Section base address + 1MB*/
+		str	r1, [r0]		/*SH Section 저장*/
 		mov	pc, lr
 ENDPROC(__setup_mmu)
 
@@ -821,43 +854,46 @@ __armv4_mmu_cache_on:
 		mov	pc, r12
 
 __armv7_mmu_cache_on:
-		mov	r12, lr			/*SH r12 = lr : arch/arm/boot/compressed/head.S의 cache_on 분기시 저장된 lr 값을 r12에 저장 해 둔다.*/
+		mov	r12, lr			/*SH r12 = lr : __setup_mmu로 분기할때 lr을 써야 하므로 r12에 현재 lr을 저장한다.*/
 #ifdef CONFIG_MMU	/*SH Y*/
 		mrc	p15, 0, r11, c0, c1, 4	@ read ID_MMFR0	/*SH A.R.M B4.1.89 ID_MMFR0, Memory Model Feature Register 0, VMSA*/
-		tst	r11, #0xf		@ VMSA		/*SH VMSA support[3:0] 필드를 검사 : 0x0만 아니면 뭔가 지원되는 것임 A.R.M에 보면 현재 분석중인 ARMv7-a는 0b0011(0x03) 일 가능성이 큼*/
-		movne	r6, #CB_BITS | 0x02	@ !XN		/*SH VMSA 필드 검사 결과 0이 아니면 r6 = CB_BITS | 0x02*/
-		blne	__setup_mmu
+		tst	r11, #0xf		@ VMSA		/*SH VMSA support[3:0] 필드를 검사 : 0x0만 아니면 뭔가 지원되는 것임*/
+								/*SH A.R.M에 보면 현재 분석중인 ARMv7-a는 0b0011(0x03) 일 가능성이 큼*/
+		movne	r6, #CB_BITS | 0x02	@ !XN		/*SH VMSA 지원하면 r6 = #CB_BITS | 0x02*/
+		blne	__setup_mmu				/*SH VMSA 지원하면 lr='mov r0, #0'명령어주소값 후 __setup_mmu로 분기*/
 		mov	r0, #0
-		mcr	p15, 0, r0, c7, c10, 4	@ drain write buffer
+		mcr	p15, 0, r0, c7, c10, 4	@ drain write buffer/*SH A.R.M B4.1.38 CP15DSB, CP15 Data Synchronization Barrier operation, VMSA*/
 		tst	r11, #0xf		@ VMSA
-		mcrne	p15, 0, r0, c8, c7, 0	@ flush I,D TLBs
+		mcrne	p15, 0, r0, c8, c7, 0	@ flush I,D TLBs    /*SH VMSA 지원하면 A.R.M B4.1.135 TLBIALL, TLB Invalidate All, VMSA only*/
 #endif
-		mrc	p15, 0, r0, c1, c0, 0	@ read control reg
-		bic	r0, r0, #1 << 28	@ clear SCTLR.TRE
+		mrc	p15, 0, r0, c1, c0, 0	@ read control reg  /*SH A.R.M B4.1.130 SCTLR, System Control Register, VMSA*/
+		bic	r0, r0, #1 << 28	@ clear SCTLR.TRE   /*SH TEX remap disabled*/
 		orr	r0, r0, #0x5000		@ I-cache enable, RR cache replacement
-		orr	r0, r0, #0x003c		@ write buffer
-		bic	r0, r0, #2		@ A (no unaligned access fault)
-		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)
+		orr	r0, r0, #0x003c		@ write buffer	    /*SH CP15 barrier enable, Data and unified caches enabled*/
+		bic	r0, r0, #2		@ A (no unaligned access fault)	/*SH Alignment check enable*/
+		orr	r0, r0, #1 << 22	@ U (v6 unaligned access model)	/*SH In ARMv7 this bit is RAO/SBOP FIXME : 이건뭐지?*/
 						@ (needed for ARM1176)
 #ifdef CONFIG_MMU	/*SH Y*/
 #ifdef CONFIG_CPU_ENDIAN_BE8	/*SH N*/
 		orr	r0, r0, #1 << 25	@ big-endian page tables
 #endif
-		mrcne   p15, 0, r6, c2, c0, 2   @ read ttb control reg
-		orrne	r0, r0, #1		@ MMU enabled
-		movne	r1, #0xfffffffd		@ domain 0 = client
+		mrcne   p15, 0, r6, c2, c0, 2   @ read ttb control reg	/*SH VMSA 지원하면 A.R.M B4.1.153 TTBCR, Translation Table Base Control Register, VMSA*/
+		orrne	r0, r0, #1		@ MMU enabled		/*SH SCTLR에 셋팅임*/
+		movne	r1, #0xfffffffd		@ domain 0 = client	/*SH domain 0 = client, domain 1~15 = Manager*/
 		bic     r6, r6, #1 << 31        @ 32-bit translation system
 		bic     r6, r6, #3 << 0         @ use only ttbr0
-		mcrne	p15, 0, r3, c2, c0, 0	@ load page table pointer
-		mcrne	p15, 0, r1, c3, c0, 0	@ load domain access control
+		mcrne	p15, 0, r3, c2, c0, 0	@ load page table pointer   /*SH VMSA 지원하면 A.R.M B4.1.154 TTBR0, Translation Table Base Register 0, VMSA*/
+									    /*SH TTBR0에 0xXX004000(r3) 저장*/
+		mcrne	p15, 0, r1, c3, c0, 0	@ load domain access control/*SH VMSA 지원하면 A.R.M B4.1.43 DACR, Domain Access Control Register, VMSA*/
+									    /*SH A.R.M에는 'mcrne   p15, 0, r1, c3, c0, 0' -> 'mcrne   p15, 0, r1, c3, c0, 1'*/
 		mcrne   p15, 0, r6, c2, c0, 2   @ load ttb control
 #endif
-		mcr	p15, 0, r0, c7, c5, 4	@ ISB
+		mcr	p15, 0, r0, c7, c5, 4	@ ISB			/*SH A.R.M B4.1.39 CP15ISB, CP15 Instruction Synchronization Barrier operation, VMSA*/
 		mcr	p15, 0, r0, c1, c0, 0	@ load control register
-		mrc	p15, 0, r0, c1, c0, 0	@ and read it back
-		mov	r0, #0
+		mrc	p15, 0, r0, c1, c0, 0	@ and read it back	/*SH FIXME 왜 또 읽어?*/
+		mov	r0, #0						/*SH r0 = 0 : return 0이랄까?*/
 		mcr	p15, 0, r0, c7, c5, 4	@ ISB
-		mov	pc, r12
+		mov	pc, r12						/*SH r12 = 시작시 저장한 복귀주소*/
 
 __fa526_cache_on:
 		mov	r12, lr
@@ -917,7 +953,8 @@ call_cache_fn:	adr	r12, proc_types		/*SH r12 = 라벨 'proc_types'의 주소값*
 #ifdef CONFIG_CPU_CP15	/*SH Y*/
 		mrc	p15, 0, r9, c0, c0	@ get processor ID	/*SH A.R.M B4.1.105 MIDR, Main ID Register, VMSA*/
 									/*SH r9 = MIDR*/
-									/*SH MIDR 필드중 [19:16] Architecture 필드를 조사하는데 현재 ARMv7 분석중이니 : 0xF 값이 될것이다.*/
+									/*SH MIDR 필드중 [19:16] Architecture 필드를 조사*/
+									/*SH 현재 ARMv7 분석중이니 : 0xF 값이 될것이다.*/
 #else
 		ldr	r9, =CONFIG_PROCESSOR_ID
 #endif
@@ -929,7 +966,6 @@ W(b)	__armv7_mmu_cache_on
 W(b)	__armv7_mmu_cache_off
 W(b)	__armv7_mmu_cache_flush
  * 이다.
- * 결국 아래 루프는 위 proc_types에서 cache 연산 함수가 호출된다.
  * */
 1:		ldr	r1, [r12, #0]		@ get value
 		ldr	r2, [r12, #4]		@ get mask
