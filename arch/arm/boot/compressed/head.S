@@ -139,23 +139,20 @@
 /*SH 130904
  * arch/arm/boot/compressed/vmlinux.lds 에 의하여 아래 .section ".start"가 '*(.start)'이므로 커널의 시작점이 된다.
  * */
-		.section ".start", #alloc, #execinstr
-		/*SH .section "섹션이름", 속성1, 속성2 : GNU LD에서 링크스크립터파일에서 사용하는 섹션 식별자 정의*/
-		/*SH #alloc : 할당가능, #execinstr : 실행가능*/
-		/*SH 여기서는 arch/arm/boot/compressed/vmlinux.lds 의 '*(.start)'가 .section ".start"임*/
+		.section ".start", #alloc, #execinstr	/*SH .section "섹션이름", 속성1, 속성2 : GNU LD에서 링크스크립터파일에서 사용하는 섹션 식별자 정의*/
+							/*SH #alloc : 할당가능, #execinstr : 실행가능*/
+							/*SH 여기서는 arch/arm/boot/compressed/vmlinux.lds 의 '*(.start)'가 .section ".start"임*/
 /*
  * sort out different calling conventions
  */
-		.align
-		/*SH .align : 다음에 올 코드의 정렬 간격을 나타냄. 기본값 2*/
-		/*SH ex>.align 3 : arm에서는 2^3 = 8 byte 간격으로 정렬*/
-		/*SH               i386에서는 걍 3 byte 간격으로 정렬*/
+		.align				/*SH .align : 다음에 올 코드의 정렬 간격을 나타냄. 기본값 2*/
+						/*SH ex>.align 3 : arm에서는 2^3 = 8 byte 간격으로 정렬*/
+						/*SH               i386에서는 걍 3 byte 간격으로 정렬*/
 		.arm				@ Always enter in ARM state
 start:
 		.type	start,#function
-		.rept	7			
-		/*SH .rept # : .endr을 만나기 전까지의 명령어를 #번 반복하여 어셈블함*/
-		/*SH 실제 코드의 시작*/
+		.rept	7			/*SH .rept # : .endr을 만나기 전까지의 명령어를 #번 반복하여 어셈블함*/
+						/*SH 실제 코드의 시작*/
 		mov	r0, r0
 		.endr
    ARM(		mov	r0, r0		)	/*SH 여기 까지 mov r0, r0를 반복하는 무의미한 코드이다.*/
@@ -169,7 +166,6 @@ start:
  * n : ARM() 부분의 코드가 남는다. -> 여기서는 'n'
  * */
 		.word	0x016f2818		@ Magic numbers to help the loader
-		/*SH 코드 Running시의 'start', '_edata' 라벨의  주소값이 아닌 절대 주소값이다.*/
 		.word	start			@ absolute load/run zImage address
 		.word	_edata			@ zImage end address
  THUMB(		.thumb			)
@@ -215,7 +211,6 @@ start:
  * s : 상태 필드 마스크 바이트 : [23:16] -> GE
  * x : 확장 필드 마스크 바이트 : [15:8] -> IT, E, A
  * c : 제어 필드 마스크 바이트 : [7:0] -> I, F, T, M
- *
  * */
 /*SH 130904-1 END*/
 /*SH 130904-2 START*/
@@ -294,18 +289,31 @@ not_angel:
 		 * */
 
 /*SH 130905-2 END*/
-/*SH NEXT-START*/
+/*SH 130909-1 START*/
 restart:	adr	r0, LC0
 		ldmia	r0, {r1, r2, r3, r6, r10, r11, r12}
 		ldr	sp, [r0, #28]
+		/*SH 130909
+		 * r0  = 라벨 'LC0' Running time의 실행 주소값
+		 * r1  = 라벨 'LC0'의 절대 주소값
+		 * r2  = __bss_start
+		 * r3  = _end : bss영역 끝
+		 * r6  = _edata : zImage 코드 끝(bss, stack 영역 미포함) 
+		 * r10 = input_data_end - 4(inflated size location) : arch/arm/boot/compressed/vmlinux.lds의 .piggydata -> arch/arm/boot/compressed/piggy.gzip.S에서 위치를 알수 있다. 압축해제한코드 사이즈 저장해 둔 곳
+		 * r11 = _got_start
+		 * r12(ip) = _got_end
+		 * r13(sp) = L_user_stack_end : arch/arm/boot/compressed/vmlinux.lds의 .stack 영역의 끝으로 zImage 코드의 끝(bss, stack 모두 포함)
+		 * */
 
 		/*
 		 * We might be running at a different address.  We need
 		 * to fix up various pointers.
 		 */
-		sub	r0, r0, r1		@ calculate the delta offset
-		add	r6, r6, r0		@ _edata
-		add	r10, r10, r0		@ inflated kernel size location
+		sub	r0, r0, r1		@ calculate the delta offset	/*SH 절대 주소와 Running 주소의 Delta offset 구함*/
+		add	r6, r6, r0		@ _edata			/*SH _edata 주소 Running 주소로 보정*/
+		add	r10, r10, r0		@ inflated kernel size location	/*SH 압축 해제 코드 크기 주소 Running 주소로 보정*/
+/*SH 130909-1 END*/
+/*SH 130910-1 START*/
 
 		/*
 		 * The kernel build system appends the size of the
@@ -320,10 +328,10 @@ restart:	adr	r0, LC0
 		orr	r9, r9, lr, lsl #16
 		orr	r9, r9, r10, lsl #24
 
-#ifndef CONFIG_ZBOOT_ROM
+#ifndef CONFIG_ZBOOT_ROM	/*SH Y*/
 		/* malloc space is above the relocated stack (64k max) */
-		add	sp, sp, r0
-		add	r10, sp, #0x10000
+		add	sp, sp, r0		/*SH sp 주소 Running 주소로 보정*/
+		add	r10, sp, #0x10000	/*SH r10 = sp(zImage 코드의 끝) + 16k : 후에 sp를 16k 더 사용하기위해 +16k하는 것임*/
 #else
 		/*
 		 * With ZBOOT_ROM the bss/stack is non relocatable,
@@ -334,7 +342,7 @@ restart:	adr	r0, LC0
 #endif
 
 		mov	r5, #0			@ init dtb size to 0
-#ifdef CONFIG_ARM_APPENDED_DTB
+#ifdef CONFIG_ARM_APPENDED_DTB	/*SH Y*/
 /*
  *   r0  = delta
  *   r2  = BSS start
@@ -355,15 +363,15 @@ restart:	adr	r0, LC0
  */
 
 		ldr	lr, [r6, #0]
-#ifndef __ARMEB__
+#ifndef __ARMEB__	/*SH Y*/
 		ldr	r1, =0xedfe0dd0		@ sig is 0xd00dfeed big endian
 #else
 		ldr	r1, =0xd00dfeed
 #endif
-		cmp	lr, r1
+		cmp	lr, r1			/*SH dtb가 구성 되어 있다면 구성후 첫번째 식별자로 0xd00dfeed를 넣어놓는다.*/
 		bne	dtb_check_done		@ not found
 
-#ifdef CONFIG_ARM_ATAG_DTB_COMPAT
+#ifdef CONFIG_ARM_ATAG_DTB_COMPAT	/*SH Y*/
 		/*
 		 * OK... Let's do some funky business here.
 		 * If we do have a DTB appended to zImage, and we do have
@@ -373,18 +381,21 @@ restart:	adr	r0, LC0
 		 * area.  No GOT fixup has occurred yet, but none of the
 		 * code we're about to call uses any global variable.
 		*/
-		add	sp, sp, #0x10000
-		stmfd	sp!, {r0-r3, ip, lr}
+		add	sp, sp, #0x10000	/*SH 현재 sp에서 64k(0x10000)를 더 할당 해줌*/
+		stmfd	sp!, {r0-r3, ip, lr}	/*SH r0, r1, r2, r3, r12(ip), r14(lr) 백업*/
 		mov	r0, r8
 		mov	r1, r6
-		sub	r2, sp, r6
-		bl	atags_to_fdt
+		sub	r2, sp, r6		/*SH _edata ~ sp 까지의 크기 구함 = 버퍼크기*/
+		bl	atags_to_fdt		/*SH 부트로더에서 넘겨받은 atag/dtb 포인터로 부터 파싱해 _edata 부터 fdt로 만들어 저장한다.*/
+						/*SH 성공하면 r0 = 0, 실패시 r0 = 1*/
 
 		/*
 		 * If returned value is 1, there is no ATAG at the location
 		 * pointed by r8.  Try the typical 0x100 offset from start
 		 * of RAM and hope for the best.
 		 */
+		/*SH 위 코드에서 atags_to_fdt 가 실패시 TEXT_OFFSET + 0x100에서 다시 찾아본다.*/
+		/*SH 그 이유는 TEXT_OFFSET + 0x100에 dtb를 두는것이 통상적인 관행이기 때문이다.*/
 		cmp	r0, #1
 		sub	r0, r4, #TEXT_OFFSET
 		bic	r0, r0, #1
@@ -393,11 +404,11 @@ restart:	adr	r0, LC0
 		sub	r2, sp, r6
 		bleq	atags_to_fdt
 
-		ldmfd	sp!, {r0-r3, ip, lr}
-		sub	sp, sp, #0x10000
+		ldmfd	sp!, {r0-r3, ip, lr}	/*SH r0, r1, r2, r3, r12(ip), r14(lr) 복원*/
+		sub	sp, sp, #0x10000	/*SH sp 크기도 - 64k(0x10000)로 복원*/
 #endif
 
-		mov	r8, r6			@ use the appended device tree
+		mov	r8, r6			@ use the appended device tree	/*SH 실제 커널에서 사용할 fdt를 r8에 할당*/
 
 		/*
 		 * Make sure that the DTB doesn't end up in the final
@@ -405,15 +416,18 @@ restart:	adr	r0, LC0
 		 * kernel size to compensate if that .bss size is larger
 		 * than the relocated code.
 		 */
-		ldr	r5, =_kernel_bss_size
+		/*SH 130911
+		 * DTB가 압축을 해제한 코드의 BSS영역을 침범하지 않도록, 검사 후 압축해제코드 사이즈를 보정해준다.
+		 * */
+		ldr	r5, =_kernel_bss_size	/*SH arch/arm/boot/compressed/.vmlinux.cmd에 --defsym _kernel_bss_size=269856*/
 		adr	r1, wont_overwrite
-		sub	r1, r6, r1
-		subs	r1, r5, r1
-		addhi	r9, r9, r1
+		sub	r1, r6, r1	/*SH wont_overwrite ~ _edata 코드 사이즈*/
+		subs	r1, r5, r1	/*SH _kernel_bss_size - (wont_overwrite ~ _edata 코드 사이즈)*/
+		addhi	r9, r9, r1	/*SH _kernel_bss_size - (wont_overwrite ~ _edata 코드 사이즈) 가 양수라면 그 값을 압축해제코드사이즈와 더해준다.*/
 
 		/* Get the dtb's size */
-		ldr	r5, [r6, #4]
-#ifndef __ARMEB__
+		ldr	r5, [r6, #4]	/*SH r5 = DTB 크기*/
+#ifndef __ARMEB__	/*SH Y*/
 		/* convert r5 (dtb size) to little endian */
 		eor	r1, r5, r5, ror #16
 		bic	r1, r1, #0x00ff0000
@@ -426,9 +440,9 @@ restart:	adr	r0, LC0
 		bic	r5, r5, #7
 
 		/* relocate some pointers past the appended dtb */
-		add	r6, r6, r5
-		add	r10, r10, r5
-		add	sp, sp, r5
+		add	r6, r6, r5	/*SH _edata += DTB Size*/
+		add	r10, r10, r5	/*SH bss/stack/malloc 포함 한 현재 코드 끝 += DTB Size*/
+		add	sp, sp, r5	/*SH sp += DTB Size*/
 dtb_check_done:
 #endif
 
@@ -442,13 +456,36 @@ dtb_check_done:
  *   r4 + image length <= address of wont_overwrite -> OK
  * Note: the possible LSB in r4 is harmless here.
  */
-		add	r10, r10, #16384
-		cmp	r4, r10
+/*SH 130911
+ * 1. r4 - 16k page directory >= r10 -> OK
+ * |     |상위 주소
+ * |     |
+ * |-----|<- 압축해제 커널 로드 주소(r4)
+ * |-----|<- page directory 시작 주소(크기16k) 즉, 이 곳이 r4 - 16k page directory
+ * |     |
+ * |-----|<- 현재 압축된 커널(zImage)코드 끝(r10)
+ * |     |
+ * |     |하위 주소
+ *
+ * 2. r4 + image length <= address of wont_overwrite -> OK
+ * |     |상위 주소
+ * |     |
+ * |-----|<- wont_overwrite(r9)
+ * |     |
+ * |-----|<- 압축해제한 커널의 마지막 주소(r10)
+ * |     |
+ * |     |
+ * |     |하위 주소
+ * */
+		add	r10, r10, #16384	/*SH 주석에는 r4(커널 로드 주소) - 16k라고 하고 사실은 r10(현재 압축된 커널코드 끝) + 16k를 해서 r4와 비교한다.*/
+		cmp	r4, r10			/*SH 1번 체크*/
 		bhs	wont_overwrite
-		add	r10, r4, r9
+		add	r10, r4, r9		/*SH r10 = 압축해제 커널 로드 주소 + 압축해제 코드 사이즈 = 실제 압축해제 커널의 마지막 주소*/
 		adr	r9, wont_overwrite
-		cmp	r10, r9
+		cmp	r10, r9			/*SH 2번 체크*/
 		bls	wont_overwrite
+/*SH 130910-1 END*/
+/*SH NEXT-START*/
 
 /*
  * Relocate ourselves past the end of the decompressed kernel.
@@ -627,14 +664,14 @@ not_relocated:	mov	r0, #0
 
 		.align	2
 		.type	LC0, #object
-LC0:		.word	LC0			@ r1
+LC0:		.word	LC0			@ r1	/*SH LC0의 절대 주소값*/
 		.word	__bss_start		@ r2
-		.word	_end			@ r3
-		.word	_edata			@ r6
-		.word	input_data_end - 4	@ r10 (inflated size location)
+		.word	_end			@ r3	/*SH bss영역 끝*/
+		.word	_edata			@ r6	/*SH zImage코드 끝(bss, stack 영역 미포함)*/
+		.word	input_data_end - 4	@ r10 (inflated size location)	/*SH 압축해제된코드 사이즈 저장해둔 곳*/
 		.word	_got_start		@ r11
 		.word	_got_end		@ ip
-		.word	.L_user_stack_end	@ sp
+		.word	.L_user_stack_end	@ sp	/*SH 스택의 끝(zImage의 끝을 나타낸다. bss, stack 영역 모두 포함) */
 		.word	_end - restart + 16384 + 1024*1024
 		.size	LC0, . - LC0
 
@@ -891,7 +928,7 @@ __armv7_mmu_cache_on:
 		mcr	p15, 0, r0, c7, c5, 4	@ ISB			/*SH A.R.M B4.1.39 CP15ISB, CP15 Instruction Synchronization Barrier operation, VMSA*/
 		mcr	p15, 0, r0, c1, c0, 0	@ load control register
 		mrc	p15, 0, r0, c1, c0, 0	@ and read it back	/*SH FIXME 왜 또 읽어?*/
-		mov	r0, #0						/*SH r0 = 0 : return 0이랄까?*/
+		mov	r0, #0						/*SH r0 = 0 : return 0*/
 		mcr	p15, 0, r0, c7, c5, 4	@ ISB
 		mov	pc, r12						/*SH r12 = 시작시 저장한 복귀주소*/
 
