@@ -485,7 +485,8 @@ dtb_check_done:
 		cmp	r10, r9			/*SH 2번 체크*/
 		bls	wont_overwrite
 /*SH 130910-1 END*/
-/*SH NEXT-START*/
+/*SH 130916-1 START*/
+
 
 /*
  * Relocate ourselves past the end of the decompressed kernel.
@@ -494,25 +495,42 @@ dtb_check_done:
  * Because we always copy ahead, we need to do it from the end and go
  * backward in case the source and destination overlap.
  */
+/*SH 130916
+ * Code relocate : 'X' 로 표시
+ * |     |상위 주소
+ * |-----|<- relocate된 _edata(r9)
+ * |XXXXX|
+ * |XXXXX|
+ * |XXXXX|
+ * |-----|<- relocate된 라벨 'restart'주소
+ * |-----|<- 압축해제한 커널의 마지막 주소(r10)
+ * |     |
+ * |     |
+ * |     |하위 주소
+ *
+ * 압축해제한 커널의 마지막 주소로 부터 r9만큼 떨어진 곳에 현재 코드의 _edata 부터 현재 코드의 restart라벨의 주소값 까지 복사
+ * */
 		/*
 		 * Bump to the next 256-byte boundary with the size of
 		 * the relocation code added. This avoids overwriting
 		 * ourself when the offset is small.
 		 */
-		add	r10, r10, #((reloc_code_end - restart + 256) & ~255)
-		bic	r10, r10, #255
+		add	r10, r10, #((reloc_code_end - restart + 256) & ~255)	/*SH 커널 압축 해제의 끝(r10) + (( restart ~ reloc_code_end까지의 크기 + 256 byte 주소) & 256 byte align  ))*/
+		bic	r10, r10, #255						/*SH r0에 대한 256 byte align*/
 
 		/* Get start of code we want to copy and align it down. */
 		adr	r5, restart
-		bic	r5, r5, #31
+		bic	r5, r5, #31	/*SH restart(r5)주소에 대한 32byte align*/
 
 /* Relocate the hyp vector base if necessary */
-#ifdef CONFIG_ARM_VIRT_EXT
+#ifdef CONFIG_ARM_VIRT_EXT	/*SH Y*/
 		mrs	r0, spsr
 		and	r0, r0, #MODE_MASK
 		cmp	r0, #HYP_MODE
 		bne	1f
+		/*SH 현재 모드가 하이퍼바이저 모드가 아니면 라벨'1'로 분기*/
 
+		/*SH FIXME 하이퍼바이저 모드라면, __hyp_get_vectors, __hyp_set_vectors 를 이용하여 재배치(relocate)할 주소와 관련한 뭔가 연산을 하는듯함*/
 		bl	__hyp_get_vectors
 		sub	r0, r0, r5
 		add	r0, r0, r10
@@ -520,11 +538,11 @@ dtb_check_done:
 1:
 #endif
 
-		sub	r9, r6, r5		@ size to copy
+		sub	r9, r6, r5		@ size to copy		/*SH r9 = restart ~ _edata까지 코드 크기*/
 		add	r9, r9, #31		@ rounded up to a multiple
-		bic	r9, r9, #31		@ ... of 32 bytes
-		add	r6, r9, r5
-		add	r9, r9, r10
+		bic	r9, r9, #31		@ ... of 32 bytes	/*SH 32 byte align*/
+		add	r6, r9, r5		/*SH r6 = restart ~ _edata 코드크기(r9) + restart 주소값(r5) = 실제 _edata의 주소값*/
+		add	r9, r9, r10		/*SH r9 = restart ~ _edata 코드크기(r9) + 커널 압축 해제의 끝(r10) = relocate 할 주소값(압축해제할 코드의 뒷부분으로 보냄)*/
 
 1:		ldmdb	r6!, {r0 - r3, r10 - r12, lr}
 		cmp	r6, r5
@@ -532,20 +550,23 @@ dtb_check_done:
 		bhi	1b
 
 		/* Preserve offset to relocated code. */
-		sub	r6, r9, r6
+		sub	r6, r9, r6	/*SH 위 루프 결과 r6 = restart라벨의 주소값 , r9는 relocate된 restart라벨의 주소값*/
+					/*SH r6 = relocate된 restart - 현재 restart = relocate에 대한 offset값 구함*/
 
-#ifndef CONFIG_ZBOOT_ROM
+#ifndef CONFIG_ZBOOT_ROM	/*SH N*/
 		/* cache_clean_flush may use the stack, so relocate it */
-		add	sp, sp, r6
+		add	sp, sp, r6		/*SH relocate sp 주소값 보정*/
 #endif
 
 		tst	r4, #1
 		bleq	cache_clean_flush
 
-		adr	r0, BSYM(restart)
+		adr	r0, BSYM(restart)	/*SH relocate된 restart 주소값 보정 후 relocate된 restart로 분기*/
 		add	r0, r0, r6
 		mov	pc, r0
+/*SH 130916-1 END*/
 
+/*SH NEXT-START*/
 wont_overwrite:
 /*
  * If delta is zero, we are running at the address we were linked at.
