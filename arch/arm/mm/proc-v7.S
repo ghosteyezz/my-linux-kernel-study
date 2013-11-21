@@ -188,7 +188,7 @@ __v7_ca7mp_setup:
 __v7_ca15mp_setup:
 	mov	r10, #0
 1:
-#ifdef CONFIG_SMP
+#ifdef CONFIG_SMP	/*SH Y*/
 	ALT_SMP(mrc	p15, 0, r0, c1, c0, 1)
 	ALT_UP(mov	r0, #(1 << 6))		@ fake it for UP
 	tst	r0, #(1 << 6)			@ SMP/nAMP mode enabled?
@@ -273,21 +273,21 @@ __v7_setup:
 	ldr	r10, =0x00000c08		@ Cortex-A8 primary part number
 	teq	r0, r10
 	bne	2f
-#if defined(CONFIG_ARM_ERRATA_430973) && !defined(CONFIG_ARCH_MULTIPLATFORM)
+#if defined(CONFIG_ARM_ERRATA_430973) && !defined(CONFIG_ARCH_MULTIPLATFORM)	/*SH N, N*/
 
 	teq	r5, #0x00100000			@ only present in r1p*
 	mrceq	p15, 0, r10, c1, c0, 1		@ read aux control register
 	orreq	r10, r10, #(1 << 6)		@ set IBE to 1
 	mcreq	p15, 0, r10, c1, c0, 1		@ write aux control register
 #endif
-#ifdef CONFIG_ARM_ERRATA_458693
+#ifdef CONFIG_ARM_ERRATA_458693	/*SH N*/
 	teq	r6, #0x20			@ only present in r2p0
 	mrceq	p15, 0, r10, c1, c0, 1		@ read aux control register
 	orreq	r10, r10, #(1 << 5)		@ set L1NEON to 1
 	orreq	r10, r10, #(1 << 9)		@ set PLDNOP to 1
 	mcreq	p15, 0, r10, c1, c0, 1		@ write aux control register
 #endif
-#ifdef CONFIG_ARM_ERRATA_460075
+#ifdef CONFIG_ARM_ERRATA_460075	/*SH N*/
 	teq	r6, #0x20			@ only present in r2p0
 	mrceq	p15, 1, r10, c9, c0, 2		@ read L2 cache aux ctrl register
 	tsteq	r10, #1 << 22
@@ -300,13 +300,13 @@ __v7_setup:
 2:	ldr	r10, =0x00000c09		@ Cortex-A9 primary part number
 	teq	r0, r10
 	bne	3f
-#ifdef CONFIG_ARM_ERRATA_742230
+#ifdef CONFIG_ARM_ERRATA_742230	/*SH N*/
 	cmp	r6, #0x22			@ only present up to r2p2
 	mrcle	p15, 0, r10, c15, c0, 1		@ read diagnostic register
 	orrle	r10, r10, #1 << 4		@ set bit #4
 	mcrle	p15, 0, r10, c15, c0, 1		@ write diagnostic register
 #endif
-#ifdef CONFIG_ARM_ERRATA_742231
+#ifdef CONFIG_ARM_ERRATA_742231	/*SH N*/
 	teq	r6, #0x20			@ present in r2p0
 	teqne	r6, #0x21			@ present in r2p1
 	teqne	r6, #0x22			@ present in r2p2
@@ -315,13 +315,13 @@ __v7_setup:
 	orreq	r10, r10, #1 << 22		@ set bit #22
 	mcreq	p15, 0, r10, c15, c0, 1		@ write diagnostic register
 #endif
-#ifdef CONFIG_ARM_ERRATA_743622
+#ifdef CONFIG_ARM_ERRATA_743622	/*SH N*/
 	teq	r5, #0x00200000			@ only present in r2p*
 	mrceq	p15, 0, r10, c15, c0, 1		@ read diagnostic register
 	orreq	r10, r10, #1 << 6		@ set bit #6
 	mcreq	p15, 0, r10, c15, c0, 1		@ write diagnostic register
 #endif
-#if defined(CONFIG_ARM_ERRATA_751472) && defined(CONFIG_SMP)
+#if defined(CONFIG_ARM_ERRATA_751472) && defined(CONFIG_SMP)	/*SH N, Y*/
 	ALT_SMP(cmp r6, #0x30)			@ present prior to r3p0
 	ALT_UP_B(1f)
 	mrclt	p15, 0, r10, c15, c0, 1		@ read diagnostic register
@@ -333,7 +333,7 @@ __v7_setup:
 3:	mov	r10, #0
 	mcr	p15, 0, r10, c7, c5, 0		@ I+BTB cache invalidate
 	dsb
-#ifdef CONFIG_MMU
+#ifdef CONFIG_MMU	/*SH Y*/
 	mcr	p15, 0, r10, c8, c7, 0		@ invalidate I + D TLBs
 	v7_ttb_setup r10, r4, r8, r5		@ TTBCR, TTBRx setup
 	ldr	r5, =PRRR			@ PRRR
@@ -341,7 +341,7 @@ __v7_setup:
 	mcr	p15, 0, r5, c10, c2, 0		@ write PRRR
 	mcr	p15, 0, r6, c10, c2, 1		@ write NMRR
 #endif
-#ifndef CONFIG_ARM_THUMBEE
+#ifndef CONFIG_ARM_THUMBEE	/*SH N*/
 	mrc	p15, 0, r0, c0, c1, 0		@ read ID_PFR0 for ThumbEE
 	and	r0, r0, #(0xf << 12)		@ ThumbEE enabled field
 	teq	r0, #(1 << 12)			@ check if ThumbEE is present
@@ -355,7 +355,7 @@ __v7_setup:
 #endif
 	adr	r5, v7_crval
 	ldmia	r5, {r5, r6}
-#ifdef CONFIG_CPU_ENDIAN_BE8
+#ifdef CONFIG_CPU_ENDIAN_BE8	/*SH N*/
 	orr	r6, r6, #1 << 25		@ big-endian page tables
 #endif
 #ifdef CONFIG_SWP_EMULATE

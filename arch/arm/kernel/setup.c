@@ -469,11 +469,34 @@ void __init smp_setup_processor_id(void)
 {
 	int i;
 	u32 mpidr = is_smp() ? read_cpuid_mpidr() & MPIDR_HWID_BITMASK : 0;
-	u32 cpu = MPIDR_AFFINITY_LEVEL(mpidr, 0);
+	u32 cpu = MPIDR_AFFINITY_LEVEL(mpidr, 0);	/*SH Affinity Level 0(The most significant affinity level field)값 구함*/
 
 	cpu_logical_map(0) = cpu;
 	for (i = 1; i < nr_cpu_ids; ++i)
 		cpu_logical_map(i) = i == cpu ? 0 : i;
+
+	/*SH 131121
+	 * cpu = 0이라고 가정하면,
+	 * __cpu_logical_map[0] = 0
+	 * __cpu_logical_map[1] = 1
+	 * __cpu_logical_map[2] = 2
+	 * __cpu_logical_map[3] = 3
+	 * cpu = 1이라고 가정하면,
+	 * __cpu_logical_map[0] = 1
+	 * __cpu_logical_map[1] = 0
+	 * __cpu_logical_map[2] = 2
+	 * __cpu_logical_map[3] = 3
+	 * cpu = 2이라고 가정하면,
+	 * __cpu_logical_map[0] = 2
+	 * __cpu_logical_map[1] = 1
+	 * __cpu_logical_map[2] = 0
+	 * __cpu_logical_map[3] = 3
+	 * cpu = 3이라고 가정하면,
+	 * __cpu_logical_map[0] = 3
+	 * __cpu_logical_map[1] = 1
+	 * __cpu_logical_map[2] = 2
+	 * __cpu_logical_map[3] = 0
+	 * */
 
 	/*
 	 * clear __my_cpu_offset on boot CPU to avoid hang caused by

@@ -78,8 +78,8 @@
 
 extern unsigned int processor_id;
 
-#ifdef CONFIG_CPU_CP15
-#define read_cpuid(reg)							\
+#ifdef CONFIG_CPU_CP15	/*SH Y*/
+#define read_cpuid(reg)							/*SH this*/\
 	({								\
 		unsigned int __val;					\
 		asm("mrc	p15, 0, %0, c0, c0, " __stringify(reg)	\
@@ -190,6 +190,9 @@ static inline unsigned int __attribute_const__ read_cpuid_tcmstatus(void)
 
 static inline unsigned int __attribute_const__ read_cpuid_mpidr(void)
 {
+    /*SH 131121
+     * A.R.M B4.1.106 : MPIDR
+     * */
 	return read_cpuid(CPUID_MPIDR);
 }
 

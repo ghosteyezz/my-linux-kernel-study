@@ -92,7 +92,7 @@ ENTRY(v7_flush_dcache_louis)
 	mrc	p15, 1, r0, c0, c0, 1		@ read clidr, r0 = clidr
 	ALT_SMP(ands	r3, r0, #(7 << 21))	@ extract LoUIS from clidr
 	ALT_UP(ands	r3, r0, #(7 << 27))	@ extract LoUU from clidr
-#ifdef CONFIG_ARM_ERRATA_643719
+#ifdef CONFIG_ARM_ERRATA_643719	/*SH N*/
 	ALT_SMP(mrceq	p15, 0, r2, c0, c0, 0)	@ read main ID register
 	ALT_UP(moveq	pc, lr)			@ LoUU is zero, so nothing to do
 	ldreq	r1, =0x410fc090                 @ ID of ARM Cortex A9 r0p?

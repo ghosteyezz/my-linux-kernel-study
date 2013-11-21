@@ -176,6 +176,11 @@ __lookup_processor_type_data:
 	.long	__proc_info_begin
 	.long	__proc_info_end
 	.size	__lookup_processor_type_data, . - __lookup_processor_type_data
+	/*SH 131119
+	 * arch/arm/include/asm/procinfo.h : proc_info_list 구조체 정의
+	 * arch/arm/mm/proc-v7.S : 실제 proc_info_list 데이터 정의
+	 * arch/arm/mm/proc-v7.S에 정의된 데이터가 arch/arm/kernel/vmlinux.lds 파일에 정의(__proc_info_begin = .; *(.proc.info.init) __proc_info_end = .;)된대로 적재된다.
+	 * */
 
 __error_p:
 #ifdef CONFIG_DEBUG_LL

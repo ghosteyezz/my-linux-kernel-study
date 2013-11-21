@@ -442,6 +442,12 @@ static void __init boot_cpu_init(void)
 	set_cpu_possible(cpu, true);
 }
 
+/*SH 131121
+ * #define __weak	__attributte__((weak))
+ * 이 속성은 컴파일러에서 지원하는 것
+ * 만약 weak속성이 지정된 함수이름으로 다른 함수가 있다면,
+ * 함수 충돌(이중선언 에러)이 발생하지 않고 weak라고 선언된 함수를 없엔다.
+ * */
 void __init __weak smp_setup_processor_id(void)
 {
 }
@@ -478,13 +484,14 @@ asmlinkage void __init start_kernel(void)
 	 * Need to run as early as possible, to initialize the
 	 * lockdep hash:
 	 */
-	lockdep_init();
-	smp_setup_processor_id();
-	debug_objects_early_init();
+	lockdep_init();			/*SH 수행안함*/
+	smp_setup_processor_id();	/*SH Affinity Level 0의 값에 따라 __cpu_logical_map[] 셋팅, TPIDRPRW = 0 셋팅*/
+	debug_objects_early_init();	/*SH 수행안함*/
 
 	/*
 	 * Set up the the initial canary ASAP:
 	 */
+	/*SH 131121 START_NEXT*/
 	boot_init_stack_canary();
 
 	cgroup_init_early();

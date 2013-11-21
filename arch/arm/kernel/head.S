@@ -73,6 +73,8 @@
  * crap here - that's what the boot loader (or in extreme, well justified
  * circumstances, zImage) is for.
  */
+/*SH 131029-2 START*/
+/*SH 압축해제한 커널의 시작점*/
 	.arm
 
 	__HEAD
@@ -83,7 +85,7 @@ ENTRY(stext)
  THUMB(	.thumb			)	@ switch to Thumb now.
  THUMB(1:			)
 
-#ifdef CONFIG_ARM_VIRT_EXT
+#ifdef CONFIG_ARM_VIRT_EXT	/*SH Y*/
 	bl	__hyp_stub_install
 #endif
 	@ ensure svc mode and all interrupts masked
@@ -94,8 +96,11 @@ ENTRY(stext)
 	movs	r10, r5				@ invalid processor (r5=0)?
  THUMB( it	eq )		@ force fixup-able long branch encoding
 	beq	__error_p			@ yes, error 'p'
+	/*SH 131119
+	 * processer_type을 검사하여 정의된 타입이 없으면 에러
+	 * */
 
-#ifdef CONFIG_ARM_LPAE
+#ifdef CONFIG_ARM_LPAE		/*SH N*/
 	mrc	p15, 0, r3, c0, c1, 4		@ read ID_MMFR0
 	and	r3, r3, #0xf			@ extract VMSA support
 	cmp	r3, #5				@ long-descriptor translation table format?
@@ -103,11 +108,14 @@ ENTRY(stext)
 	blo	__error_p			@ only classic page table format
 #endif
 
-#ifndef CONFIG_XIP_KERNEL
+#ifndef CONFIG_XIP_KERNEL	/*SH N*/
 	adr	r3, 2f
 	ldmia	r3, {r4, r8}
 	sub	r4, r3, r4			@ (PHYS_OFFSET - PAGE_OFFSET)
 	add	r8, r8, r4			@ PHYS_OFFSET
+	/*SH 131119
+	 * 실제 물리주소 오프셋 구함
+	 * */
 #else
 	ldr	r8, =PHYS_OFFSET		@ always constant in this case
 #endif
@@ -116,11 +124,11 @@ ENTRY(stext)
 	 * r1 = machine no, r2 = atags or dtb,
 	 * r8 = phys_offset, r9 = cpuid, r10 = procinfo
 	 */
-	bl	__vet_atags
-#ifdef CONFIG_SMP_ON_UP
+	bl	__vet_atags	/*SH 131119 dtb검사*/
+#ifdef CONFIG_SMP_ON_UP		/*SH Y*/
 	bl	__fixup_smp
 #endif
-#ifdef CONFIG_ARM_PATCH_PHYS_VIRT
+#ifdef CONFIG_ARM_PATCH_PHYS_VIRT	/*SH Y*/
 	bl	__fixup_pv_table
 #endif
 	bl	__create_page_tables
@@ -132,6 +140,10 @@ ENTRY(stext)
 	 * above.  On return, the CPU will be ready for the MMU to be
 	 * turned on, and r0 will hold the CPU control register value.
 	 */
+	/*SH 131120
+	 * arch/arm/mm/proc-v7.S에 정의된 proc_info_list 중 현재 cpu에 맞는 proc_info의 cpu setup루틴이 수행되고,
+	 * 그결과 r0에 cpu control register value 가 셋됨
+	 * */
 	ldr	r13, =__mmap_switched		@ address to jump to after
 						@ mmu has been enabled
 	adr	lr, BSYM(1f)			@ return (PIC) address
@@ -174,7 +186,7 @@ __create_page_tables:
 	teq	r0, r6
 	bne	1b
 
-#ifdef CONFIG_ARM_LPAE
+#ifdef CONFIG_ARM_LPAE	/*SH N*/
 	/*
 	 * Build the PGD table (first level) to point to the PMD table. A PGD
 	 * entry is 64-bit wide.
@@ -221,6 +233,7 @@ __create_page_tables:
 	cmp	r5, r6
 	addlo	r5, r5, #1			@ next section
 	blo	1b
+	/*SH 131120 __turn_mmu_on ~ __turn_mmu_on_end 주소영역의 mmu page map table 설정*/
 
 	/*
 	 * Map our RAM from the start to the end of the kernel .bss section.
@@ -233,8 +246,9 @@ __create_page_tables:
 	add	r3, r3, #1 << SECTION_SHIFT
 	cmp	r0, r6
 	bls	1b
+	/*SH 131120 RAM상의 kernel bss영역의 mmu page map table 설정*/
 
-#ifdef CONFIG_XIP_KERNEL
+#ifdef CONFIG_XIP_KERNEL	/*SH N*/
 	/*
 	 * Map the kernel image separately as it is not located in RAM.
 	 */
@@ -266,14 +280,15 @@ __create_page_tables:
 	strne	r6, [r3], #1 << PMD_ORDER
 	addne	r6, r6, #1 << SECTION_SHIFT
 	strne	r6, [r3]
+	/*SH 131120 DTB영역의 mmu page map table 설정*/
 
-#if defined(CONFIG_ARM_LPAE) && defined(CONFIG_CPU_ENDIAN_BE8)
+#if defined(CONFIG_ARM_LPAE) && defined(CONFIG_CPU_ENDIAN_BE8)	/*SH N, N*/
 	sub	r4, r4, #4			@ Fixup page table pointer
 						@ for 64-bit descriptors
 #endif
 
-#ifdef CONFIG_DEBUG_LL
-#if !defined(CONFIG_DEBUG_ICEDCC) && !defined(CONFIG_DEBUG_SEMIHOSTING)
+#ifdef CONFIG_DEBUG_LL	/*SH N*/
+#if !defined(CONFIG_DEBUG_ICEDCC) && !defined(CONFIG_DEBUG_SEMIHOSTING)	/*SH N, N*/
 	/*
 	 * Map in IO space for serial debugging.
 	 * This allows debug messages to be output
@@ -288,9 +303,9 @@ __create_page_tables:
 	mov	r3, r7, lsr #SECTION_SHIFT
 	ldr	r7, [r10, #PROCINFO_IO_MMUFLAGS] @ io_mmuflags
 	orr	r3, r7, r3, lsl #SECTION_SHIFT
-#ifdef CONFIG_ARM_LPAE
+#ifdef CONFIG_ARM_LPAE	/*SH N*/
 	mov	r7, #1 << (54 - 32)		@ XN
-#ifdef CONFIG_CPU_ENDIAN_BE8
+#ifdef CONFIG_CPU_ENDIAN_BE8	/*SH N*/
 	str	r7, [r0], #4
 	str	r3, [r0], #4
 #else
@@ -307,7 +322,7 @@ __create_page_tables:
 	ldr	r7, [r10, #PROCINFO_IO_MMUFLAGS] @ io_mmuflags
 #endif
 
-#if defined(CONFIG_ARCH_NETWINDER) || defined(CONFIG_ARCH_CATS)
+#if defined(CONFIG_ARCH_NETWINDER) || defined(CONFIG_ARCH_CATS)	/*SH N, N*/
 	/*
 	 * If we're using the NetWinder or CATS, we also need to map
 	 * in the 16550-type serial port for the debug messages
@@ -316,7 +331,7 @@ __create_page_tables:
 	orr	r3, r7, #0x7c000000
 	str	r3, [r0]
 #endif
-#ifdef CONFIG_ARCH_RPC
+#ifdef CONFIG_ARCH_RPC	/*SH N*/
 	/*
 	 * Map in screen at 0x02000000 & SCREEN2_BASE
 	 * Similar reasons here - for debug.  This is
@@ -329,7 +344,7 @@ __create_page_tables:
 	str	r3, [r0]
 #endif
 #endif
-#ifdef CONFIG_ARM_LPAE
+#ifdef CONFIG_ARM_LPAE	/*SH N*/
 	sub	r4, r4, #0x1000		@ point to the PGD table
 	mov	r4, r4, lsr #ARCH_PGD_SHIFT
 #endif
@@ -416,19 +431,19 @@ __secondary_data:
 __enable_mmu:
 #if defined(CONFIG_ALIGNMENT_TRAP) && __LINUX_ARM_ARCH__ < 6
 	orr	r0, r0, #CR_A
-#else
+#else	/*SH this*/
 	bic	r0, r0, #CR_A
 #endif
-#ifdef CONFIG_CPU_DCACHE_DISABLE
+#ifdef CONFIG_CPU_DCACHE_DISABLE	/*SH N*/
 	bic	r0, r0, #CR_C
 #endif
-#ifdef CONFIG_CPU_BPREDICT_DISABLE
+#ifdef CONFIG_CPU_BPREDICT_DISABLE	/*SH N*/
 	bic	r0, r0, #CR_Z
 #endif
-#ifdef CONFIG_CPU_ICACHE_DISABLE
+#ifdef CONFIG_CPU_ICACHE_DISABLE	/*SH N*/
 	bic	r0, r0, #CR_I
 #endif
-#ifndef CONFIG_ARM_LPAE
+#ifndef CONFIG_ARM_LPAE		/*SH N*/
 	mov	r5, #(domain_val(DOMAIN_USER, DOMAIN_MANAGER) | \
 		      domain_val(DOMAIN_KERNEL, DOMAIN_MANAGER) | \
 		      domain_val(DOMAIN_TABLE, DOMAIN_MANAGER) | \
@@ -457,19 +472,20 @@ ENDPROC(__enable_mmu)
 	.pushsection	.idmap.text, "ax"
 ENTRY(__turn_mmu_on)
 	mov	r0, r0
-	instr_sync
-	mcr	p15, 0, r0, c1, c0, 0		@ write control reg
+	instr_sync	/*SH ISB*/
+	mcr	p15, 0, r0, c1, c0, 0		@ write control reg	/*SH mmu on*/
 	mrc	p15, 0, r3, c0, c0, 0		@ read id reg
-	instr_sync
+	instr_sync	/*SH ISB*/
 	mov	r3, r3
 	mov	r3, r13
 	mov	pc, r3
+	/*SH 131120 r13 = __mmap_switched*/
 __turn_mmu_on_end:
 ENDPROC(__turn_mmu_on)
 	.popsection
 
 
-#ifdef CONFIG_SMP_ON_UP
+#ifdef CONFIG_SMP_ON_UP		/*SH Y*/
 	__INIT
 __fixup_smp:
 	and	r3, r9, #0x000f0000	@ architecture version
@@ -536,7 +552,7 @@ ENTRY(fixup_smp)
 	ldmfd	sp!, {r4 - r6, pc}
 ENDPROC(fixup_smp)
 
-#ifdef CONFIG_ARM_PATCH_PHYS_VIRT
+#ifdef CONFIG_ARM_PATCH_PHYS_VIRT	/*SH Y*/
 
 /* __fixup_pv_table - patch the stub instructions with the delta between
  * PHYS_OFFSET and PAGE_OFFSET, which is assumed to be 16MiB aligned and
@@ -568,7 +584,7 @@ ENDPROC(__fixup_pv_table)
 
 	.text
 __fixup_a_pv_table:
-#ifdef CONFIG_THUMB2_KERNEL
+#ifdef CONFIG_THUMB2_KERNEL	/*SH N*/
 	lsls	r6, #24
 	beq	2f
 	clz	r7, r6

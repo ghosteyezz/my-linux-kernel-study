@@ -15,11 +15,11 @@
  */
 static inline bool is_smp(void)
 {
-#ifndef CONFIG_SMP
+#ifndef CONFIG_SMP	/*SH Y*/
 	return false;
-#elif defined(CONFIG_SMP_ON_UP)
+#elif defined(CONFIG_SMP_ON_UP)	/*SH Y*/
 	extern unsigned int smp_on_up;
-	return !!smp_on_up;
+	return !!smp_on_up;	/*SH !!리턴값을 0 or 1로 만들기 위함*/
 #else
 	return true;
 #endif

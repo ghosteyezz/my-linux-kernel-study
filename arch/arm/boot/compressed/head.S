@@ -328,7 +328,7 @@ restart:	adr	r0, LC0
 		orr	r9, r9, lr, lsl #16
 		orr	r9, r9, r10, lsl #24
 
-#ifndef CONFIG_ZBOOT_ROM	/*SH Y*/
+#ifndef CONFIG_ZBOOT_ROM	/*SH N*/
 		/* malloc space is above the relocated stack (64k max) */
 		add	sp, sp, r0		/*SH sp 주소 Running 주소로 보정*/
 		add	r10, sp, #0x10000	/*SH r10 = sp(zImage 코드의 끝) + 16k : 후에 sp를 16k 더 사용하기위해 +16k하는 것임*/
@@ -363,7 +363,7 @@ restart:	adr	r0, LC0
  */
 
 		ldr	lr, [r6, #0]
-#ifndef __ARMEB__	/*SH Y*/
+#ifndef __ARMEB__	/*SH N*/
 		ldr	r1, =0xedfe0dd0		@ sig is 0xd00dfeed big endian
 #else
 		ldr	r1, =0xd00dfeed
@@ -566,7 +566,7 @@ dtb_check_done:
 		mov	pc, r0
 /*SH 130916-1 END*/
 
-/*SH NEXT-START*/
+/*SH 131029-1 START*/
 wont_overwrite:
 /*
  * If delta is zero, we are running at the address we were linked at.
@@ -587,7 +587,7 @@ wont_overwrite:
 		add	r11, r11, r0
 		add	r12, r12, r0
 
-#ifndef CONFIG_ZBOOT_ROM
+#ifndef CONFIG_ZBOOT_ROM	/*SH N*/
 		/*
 		 * If we're running fully PIC === CONFIG_ZBOOT_ROM = n,
 		 * we need to fix up pointers into the BSS region.
@@ -681,6 +681,7 @@ not_relocated:	mov	r0, #0
 .L__hyp_reentry_vectors_offset:	.long	__hyp_reentry_vectors - .
 #else
 		b	__enter_kernel
+/*SH 131029-1 END */
 #endif
 
 		.align	2

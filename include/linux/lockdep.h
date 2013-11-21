@@ -16,7 +16,7 @@ struct lockdep_map;
 extern int prove_locking;
 extern int lock_stat;
 
-#ifdef CONFIG_LOCKDEP
+#ifdef CONFIG_LOCKDEP	/*SH N*/
 
 #include <linux/linkage.h>
 #include <linux/list.h>
@@ -382,7 +382,7 @@ static inline void lockdep_on(void)
 # define lockdep_set_current_reclaim_state(g)	do { } while (0)
 # define lockdep_clear_current_reclaim_state()	do { } while (0)
 # define lockdep_trace_alloc(g)			do { } while (0)
-# define lockdep_init()				do { } while (0)
+# define lockdep_init()				do { } while (0)	/*SH this*/
 # define lockdep_info()				do { } while (0)
 # define lockdep_init_map(lock, name, key, sub) \
 		do { (void)(name); (void)(key); } while (0)
