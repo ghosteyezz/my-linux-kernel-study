@@ -484,18 +484,18 @@ asmlinkage void __init start_kernel(void)
 	 * Need to run as early as possible, to initialize the
 	 * lockdep hash:
 	 */
-	lockdep_init();			/*SH 수행안함*/
+	lockdep_init();			/*SH Empty function*/
 	smp_setup_processor_id();	/*SH Affinity Level 0의 값에 따라 __cpu_logical_map[] 셋팅, TPIDRPRW = 0 셋팅*/
-	debug_objects_early_init();	/*SH 수행안함*/
+	debug_objects_early_init();	/*SH Empty function*/
 
 	/*
 	 * Set up the the initial canary ASAP:
 	 */
+	boot_init_stack_canary();	/*SH Empty function*/
+
+	cgroup_init_early();		/*SH Empty function*/
+
 	/*SH 131121 START_NEXT*/
-	boot_init_stack_canary();
-
-	cgroup_init_early();
-
 	local_irq_disable();
 	early_boot_irqs_disabled = true;
 
