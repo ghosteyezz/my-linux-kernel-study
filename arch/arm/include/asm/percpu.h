@@ -24,10 +24,7 @@
 static inline void set_my_cpu_offset(unsigned long off)	/*SH this*/
 {
 	/* Set TPIDRPRW */
-    /*SH 131121
-     * TPIDRPRW : A.R.M: B4.1.150
-     * */
-	asm volatile("mcr p15, 0, %0, c13, c0, 4" : : "r" (off) : "memory");
+	asm volatile("mcr p15, 0, %0, c13, c0, 4" : : "r" (off) : "memory");	/*SH A.R.M B4.1.150 TPIDRPRW, PL1 only Thread ID Register, VMSA*/
 }
 
 static inline unsigned long __my_cpu_offset(void)

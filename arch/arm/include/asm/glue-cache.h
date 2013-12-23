@@ -109,11 +109,11 @@
 # endif
 #endif
 
-#if defined(CONFIG_CPU_V7)
-# ifdef _CACHE
+#if defined(CONFIG_CPU_V7)	/*SH Y*/
+# ifdef _CACHE	/*SH N*/
 #  define MULTI_CACHE 1
 # else
-#  define _CACHE v7
+#  define _CACHE v7	/*SH this*/
 # endif
 #endif
 

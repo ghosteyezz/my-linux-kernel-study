@@ -91,7 +91,7 @@ struct ftrace_branch_data {
  * to disable branch tracing on a per file basis.
  */
 #if defined(CONFIG_TRACE_BRANCH_PROFILING) \
-    && !defined(DISABLE_BRANCH_PROFILING) && !defined(__CHECKER__)
+    && !defined(DISABLE_BRANCH_PROFILING) && !defined(__CHECKER__)	/*SH N*/
 void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
 
 #define likely_notrace(x)	__builtin_expect(!!(x), 1)
@@ -149,7 +149,7 @@ void ftrace_likely_update(struct ftrace_branch_data *f, int val, int expect);
 #endif /* CONFIG_PROFILE_ALL_BRANCHES */
 
 #else
-# define likely(x)	__builtin_expect(!!(x), 1)
+# define likely(x)	__builtin_expect(!!(x), 1)	/*SH this*/
 # define unlikely(x)	__builtin_expect(!!(x), 0)
 #endif
 

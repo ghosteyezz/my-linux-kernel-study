@@ -764,7 +764,7 @@ static __always_inline void *lowmem_page_address(const struct page *page)
 	return __va(PFN_PHYS(page_to_pfn(page)));
 }
 
-#if defined(CONFIG_HIGHMEM) && !defined(WANT_PAGE_VIRTUAL)
+#if defined(CONFIG_HIGHMEM) && !defined(WANT_PAGE_VIRTUAL)	/*SH Y,N*/
 #define HASHED_PAGE_VIRTUAL
 #endif
 
@@ -777,10 +777,10 @@ static __always_inline void *lowmem_page_address(const struct page *page)
 #define page_address_init()  do { } while(0)
 #endif
 
-#if defined(HASHED_PAGE_VIRTUAL)
+#if defined(HASHED_PAGE_VIRTUAL)	/*SH Y*/
 void *page_address(const struct page *page);
 void set_page_address(struct page *page, void *virtual);
-void page_address_init(void);
+void page_address_init(void);	/*SH this*/
 #endif
 
 #if !defined(HASHED_PAGE_VIRTUAL) && !defined(WANT_PAGE_VIRTUAL)

@@ -13,9 +13,9 @@
 
 #define HAVE_ARCH_DEVTREE_FIXUPS
 
-#ifdef CONFIG_OF
+#ifdef CONFIG_OF	/*SH Y*/
 
-extern struct machine_desc *setup_machine_fdt(unsigned int dt_phys);
+extern struct machine_desc *setup_machine_fdt(unsigned int dt_phys);	/*SH this*/
 extern void arm_dt_memblock_reserve(void);
 extern void __init arm_dt_init_cpu_maps(void);
 

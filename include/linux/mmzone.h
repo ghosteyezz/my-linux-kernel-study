@@ -822,8 +822,8 @@ static inline struct zone *lruvec_zone(struct lruvec *lruvec)
 #endif
 }
 
-#ifdef CONFIG_HAVE_MEMORY_PRESENT
-void memory_present(int nid, unsigned long start, unsigned long end);
+#ifdef CONFIG_HAVE_MEMORY_PRESENT	/*SH Y*/
+void memory_present(int nid, unsigned long start, unsigned long end);	/*SH this*/
 #else
 static inline void memory_present(int nid, unsigned long start, unsigned long end) {}
 #endif
@@ -1053,7 +1053,7 @@ static inline unsigned long early_pfn_to_nid(unsigned long pfn)
 #define pfn_to_nid(pfn)		(0)
 #endif
 
-#ifdef CONFIG_SPARSEMEM
+#ifdef CONFIG_SPARSEMEM		/*SH Y*/
 
 /*
  * SECTION_SHIFT    		#bits space required to store a section #
@@ -1115,8 +1115,8 @@ struct mem_section {
 	 */
 };
 
-#ifdef CONFIG_SPARSEMEM_EXTREME
-#define SECTIONS_PER_ROOT       (PAGE_SIZE / sizeof (struct mem_section))
+#ifdef CONFIG_SPARSEMEM_EXTREME	/*SH Y*/
+#define SECTIONS_PER_ROOT       (PAGE_SIZE / sizeof (struct mem_section))	/*SH this*/
 #else
 #define SECTIONS_PER_ROOT	1
 #endif
@@ -1204,7 +1204,7 @@ static inline int pfn_present(unsigned long pfn)
  * can use __initdata ...  They could have names to indicate
  * this restriction.
  */
-#ifdef CONFIG_NUMA
+#ifdef CONFIG_NUMA	/*SH N*/
 #define pfn_to_nid(pfn)							\
 ({									\
 	unsigned long __pfn_to_nid_pfn = (pfn);				\

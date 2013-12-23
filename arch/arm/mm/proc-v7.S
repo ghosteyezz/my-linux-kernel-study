@@ -25,7 +25,7 @@
 #include "proc-v7-2level.S"
 #endif
 
-ENTRY(cpu_v7_proc_init)
+ENTRY(cpu_v7_proc_init)	/*SH this*/
 	mov	pc, lr
 ENDPROC(cpu_v7_proc_init)
 

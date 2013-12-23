@@ -21,7 +21,7 @@
 #define inc_preempt_count() add_preempt_count(1)
 #define dec_preempt_count() sub_preempt_count(1)
 
-#define preempt_count()	(current_thread_info()->preempt_count)
+#define preempt_count()	(current_thread_info()->preempt_count)	/*SH this*/
 
 #ifdef CONFIG_PREEMPT
 

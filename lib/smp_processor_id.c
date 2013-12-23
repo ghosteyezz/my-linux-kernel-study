@@ -9,13 +9,13 @@
 
 notrace unsigned int debug_smp_processor_id(void)
 {
-	unsigned long preempt_count = preempt_count();
-	int this_cpu = raw_smp_processor_id();
+	unsigned long preempt_count = preempt_count();	/*SH current thread_info->preempt_count*/
+	int this_cpu = raw_smp_processor_id();		/*SH current thread_info->cpu*/
 
-	if (likely(preempt_count))
+	if (likely(preempt_count))	/*SH likely : 인자가 true인지 검사*/
 		goto out;
 
-	if (irqs_disabled())
+	if (irqs_disabled())	/*SH Interrupt disabled : false, enabled : true */
 		goto out;
 
 	/*

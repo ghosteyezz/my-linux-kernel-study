@@ -8,17 +8,17 @@
 /*
  * CPU interrupt mask handling.
  */
-#ifdef CONFIG_CPU_V7M
+#ifdef CONFIG_CPU_V7M	/*SH N*/
 #define IRQMASK_REG_NAME_R "primask"
 #define IRQMASK_REG_NAME_W "primask"
 #define IRQMASK_I_BIT	1
 #else
-#define IRQMASK_REG_NAME_R "cpsr"
-#define IRQMASK_REG_NAME_W "cpsr_c"
-#define IRQMASK_I_BIT	PSR_I_BIT
+#define IRQMASK_REG_NAME_R "cpsr"	/*SH this*/
+#define IRQMASK_REG_NAME_W "cpsr_c"	/*SH this*/
+#define IRQMASK_I_BIT	PSR_I_BIT	/*SH this*/
 #endif
 
-#if __LINUX_ARM_ARCH__ >= 6
+#if __LINUX_ARM_ARCH__ >= 6	/*SH .*.o.cmd 에 -D__LINUX_ARM_ARCH__=7*/
 
 static inline unsigned long arch_local_irq_save(void)
 {
@@ -40,6 +40,7 @@ static inline void arch_local_irq_enable(void)
 		: "memory", "cc");
 }
 
+/*SH Interrupt disable 한다*/
 static inline void arch_local_irq_disable(void)
 {
 	asm volatile(

@@ -30,7 +30,7 @@ enum pageblock_bits {
 	PB_migrate,
 	PB_migrate_end = PB_migrate + 3 - 1,
 			/* 3 bits required for migrate types */
-#ifdef CONFIG_COMPACTION
+#ifdef CONFIG_COMPACTION	/*SH Y*/
 	PB_migrate_skip,/* If set the block is skipped by compaction */
 #endif /* CONFIG_COMPACTION */
 	NR_PAGEBLOCK_BITS

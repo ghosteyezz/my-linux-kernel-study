@@ -104,7 +104,7 @@ extern const struct cpumask *const cpu_active_mask;
 /* verify cpu argument to cpumask_* operators */
 static inline unsigned int cpumask_check(unsigned int cpu)
 {
-#ifdef CONFIG_DEBUG_PER_CPU_MAPS
+#ifdef CONFIG_DEBUG_PER_CPU_MAPS	/*SH N*/
 	WARN_ON_ONCE(cpu >= nr_cpumask_bits);
 #endif /* CONFIG_DEBUG_PER_CPU_MAPS */
 	return cpu;
@@ -741,6 +741,7 @@ void init_cpu_online(const struct cpumask *src);
  *
  * This does the conversion, and can be used as a constant initializer.
  */
+/*SH bitmap배열을 struct cpumask 자료형으로 치환한다.*/
 #define to_cpumask(bitmap)						\
 	((struct cpumask *)(1 ? (bitmap)				\
 			    : (void *)sizeof(__check_is_bitmap(bitmap))))

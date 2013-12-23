@@ -15,10 +15,10 @@
 
 #define PLAT_PHYS_OFFSET		UL(0x40000000)
 
-#ifndef CONFIG_ARM_LPAE
+#ifndef CONFIG_ARM_LPAE	/*SH N*/
 /* Maximum of 256MiB in one bank */
-#define MAX_PHYSMEM_BITS	32
-#define SECTION_SIZE_BITS	28
+#define MAX_PHYSMEM_BITS	32	/*SH this*/
+#define SECTION_SIZE_BITS	28	/*SH this*/
 #else
 #define MAX_PHYSMEM_BITS	36
 #define SECTION_SIZE_BITS	31

@@ -99,19 +99,19 @@ unsigned int elf_hwcap __read_mostly;
 EXPORT_SYMBOL(elf_hwcap);
 
 
-#ifdef MULTI_CPU
+#ifdef MULTI_CPU	/*SH N*/
 struct processor processor __read_mostly;
 #endif
-#ifdef MULTI_TLB
+#ifdef MULTI_TLB	/*SH Y*/
 struct cpu_tlb_fns cpu_tlb __read_mostly;
 #endif
-#ifdef MULTI_USER
+#ifdef MULTI_USER	/*SH Y*/
 struct cpu_user_fns cpu_user __read_mostly;
 #endif
-#ifdef MULTI_CACHE
+#ifdef MULTI_CACHE	/*SH Y*/
 struct cpu_cache_fns cpu_cache __read_mostly;
 #endif
-#ifdef CONFIG_OUTER_CACHE
+#ifdef CONFIG_OUTER_CACHE	/*SH Y*/
 struct outer_cache_fns outer_cache __read_mostly;
 EXPORT_SYMBOL(outer_cache);
 #endif
@@ -129,8 +129,8 @@ struct stack {
 	u32 und[3];
 } ____cacheline_aligned;
 
-#ifndef CONFIG_CPU_V7M
-static struct stack stacks[NR_CPUS];
+#ifndef CONFIG_CPU_V7M	/*SH N*/
+static struct stack stacks[NR_CPUS];	/*SH this*/
 #endif
 
 char elf_platform[ELF_PLATFORM_SIZE];
@@ -219,12 +219,12 @@ static const char *proc_arch[] = {
 	"?(17)",
 };
 
-#ifdef CONFIG_CPU_V7M
+#ifdef CONFIG_CPU_V7M	/*SH N*/
 static int __get_cpu_architecture(void)
 {
 	return CPU_ARCH_ARMv7M;
 }
-#else
+#else	/*SH this*/
 static int __get_cpu_architecture(void)
 {
 	int cpu_arch;
@@ -237,16 +237,17 @@ static int __get_cpu_architecture(void)
 		cpu_arch = (read_cpuid_id() >> 16) & 7;
 		if (cpu_arch)
 			cpu_arch += CPU_ARCH_ARMv3;
-	} else if ((read_cpuid_id() & 0x000f0000) == 0x000f0000) {
+	} else if ((read_cpuid_id() & 0x000f0000) == 0x000f0000) {	/*SH this*/
 		unsigned int mmfr0;
 
 		/* Revised CPUID format. Read the Memory Model Feature
 		 * Register 0 and check for VMSAv7 or PMSAv7 */
+		/*SH A.R.M B4.1.89 ID_MMFR0 읽어서 해당 cpu의 메모리 모델로 아키텍쳐 파악*/
 		asm("mrc	p15, 0, %0, c0, c1, 4"
 		    : "=r" (mmfr0));
 		if ((mmfr0 & 0x0000000f) >= 0x00000003 ||
 		    (mmfr0 & 0x000000f0) >= 0x00000030)
-			cpu_arch = CPU_ARCH_ARMv7;
+			cpu_arch = CPU_ARCH_ARMv7;	/*SH this*/
 		else if ((mmfr0 & 0x0000000f) == 0x00000002 ||
 			 (mmfr0 & 0x000000f0) == 0x00000020)
 			cpu_arch = CPU_ARCH_ARMv6;
@@ -306,17 +307,17 @@ static void __init cacheid_init(void)
 	if (arch == CPU_ARCH_ARMv7M) {
 		cacheid = 0;
 	} else if (arch >= CPU_ARCH_ARMv6) {
-		unsigned int cachetype = read_cpuid_cachetype();
-		if ((cachetype & (7 << 29)) == 4 << 29) {
+		unsigned int cachetype = read_cpuid_cachetype();	/*SH A.R.M B4.1.42 CTR, Cashe Type Register 읽어옴*/
+		if ((cachetype & (7 << 29)) == 4 << 29) {	/*SH CTR - Formati bits[31:29] 검사 : ARMv7 = 0b100(4)*/
 			/* ARMv7 register format */
 			arch = CPU_ARCH_ARMv7;
 			cacheid = CACHEID_VIPT_NONALIASING;
-			switch (cachetype & (3 << 14)) {
+			switch (cachetype & (3 << 14)) {	/*SH CTR - L1Ip bits[15:14] 검사*/
 			case (1 << 14):
-				cacheid |= CACHEID_ASID_TAGGED;
+				cacheid |= CACHEID_ASID_TAGGED;	/*SH ASID-tagged Virtual Index, Virtual Tag (AIVIVT)*/
 				break;
 			case (3 << 14):
-				cacheid |= CACHEID_PIPT;
+				cacheid |= CACHEID_PIPT;	/*SH Physical Index, Physical Tag (PIPT)*/
 				break;
 			}
 		} else {
@@ -372,19 +373,20 @@ static void __init cpuid_init_hwcaps(void)
 	if (cpu_architecture() < CPU_ARCH_ARMv7)
 		return;
 
-	divide_instrs = (read_cpuid_ext(CPUID_EXT_ISAR0) & 0x0f000000) >> 24;
+	divide_instrs = (read_cpuid_ext(CPUID_EXT_ISAR0) & 0x0f000000) >> 24;	/*SH A.R.M B4.1.83 ID_ISAR0에서 Divide_instrs 값 추출*/
+	/*SH Divide_instrs : Indicates the implementd Divide instructions*/
 
 	switch (divide_instrs) {
-	case 2:
+	case 2:	/*SH As for 'case 1:', and Adds SDIV and UDIV in the ARM instruction set*/
 		elf_hwcap |= HWCAP_IDIVA;
-	case 1:
+	case 1:	/*SH Adds SDIV and UDIV in the Thumb instruction set*/
 		elf_hwcap |= HWCAP_IDIVT;
 	}
 
 	/* LPAE implies atomic ldrd/strd instructions */
-	vmsa = (read_cpuid_ext(CPUID_EXT_MMFR0) & 0xf) >> 0;
+	vmsa = (read_cpuid_ext(CPUID_EXT_MMFR0) & 0xf) >> 0;	/*SH A.R.M B4.1.89 ID_MMFR0 에서 VMSA support값 추출*/
 	if (vmsa >= 5)
-		elf_hwcap |= HWCAP_LPAE;
+		elf_hwcap |= HWCAP_LPAE;	/*SH Long-descriptor translation table format*/
 }
 
 static void __init feat_v6_fixup(void)
@@ -409,7 +411,7 @@ static void __init feat_v6_fixup(void)
  */
 void notrace cpu_init(void)
 {
-#ifndef CONFIG_CPU_V7M
+#ifndef CONFIG_CPU_V7M	/*SH N*/
 	unsigned int cpu = smp_processor_id();
 	struct stack *stk = &stacks[cpu];
 
@@ -422,18 +424,18 @@ void notrace cpu_init(void)
 	 * This only works on resume and secondary cores. For booting on the
 	 * boot cpu, smp_prepare_boot_cpu is called after percpu area setup.
 	 */
-	set_my_cpu_offset(per_cpu_offset(cpu));
+	set_my_cpu_offset(per_cpu_offset(cpu));	/*SH TPIDRPRW Register에 mm/percpu.c __per_cpu_offset[cpu] 값을 Write함*/
 
-	cpu_proc_init();
+	cpu_proc_init();	/*SH Empty function*/
 
 	/*
 	 * Define the placement constraint for the inline asm directive below.
 	 * In Thumb-2, msr with an immediate value is not allowed.
 	 */
-#ifdef CONFIG_THUMB2_KERNEL
+#ifdef CONFIG_THUMB2_KERNEL	/*SH N*/
 #define PLC	"r"
 #else
-#define PLC	"I"
+#define PLC	"I"		/*SH this*/
 #endif
 
 	/*
@@ -460,6 +462,7 @@ void notrace cpu_init(void)
 	      "I" (offsetof(struct stack, und[0])),
 	      PLC (PSR_F_BIT | PSR_I_BIT | SVC_MODE)
 	    : "r14");
+	/*SH IRQ, ABT, UND, SVC 모드 stack 할당*/
 #endif
 }
 
@@ -590,42 +593,41 @@ static void __init setup_processor(void)
 		while (1);
 	}
 
-	cpu_name = list->cpu_name;
-	__cpu_architecture = __get_cpu_architecture();
+	cpu_name = list->cpu_name;			/*SH "ARMv7 Processor"*/
+	__cpu_architecture = __get_cpu_architecture();	/*SH CPU_ARCH_ARMv7*/
 
-#ifdef MULTI_CPU
+#ifdef MULTI_CPU	/*SH N*/
 	processor = *list->proc;
 #endif
-#ifdef MULTI_TLB
+#ifdef MULTI_TLB	/*SH Y*/
 	cpu_tlb = *list->tlb;
 #endif
-#ifdef MULTI_USER
+#ifdef MULTI_USER	/*SH Y*/
 	cpu_user = *list->user;
 #endif
-#ifdef MULTI_CACHE
+#ifdef MULTI_CACHE	/*SH Y*/
 	cpu_cache = *list->cache;
 #endif
 
 	printk("CPU: %s [%08x] revision %d (ARMv%s), cr=%08lx\n",
 	       cpu_name, read_cpuid_id(), read_cpuid_id() & 15,
-	       proc_arch[cpu_architecture()], cr_alignment);
-
+	       proc_arch[cpu_architecture()], cr_alignment);	/*SH CPU 정보 출력*/
 	snprintf(init_utsname()->machine, __NEW_UTS_LEN + 1, "%s%c",
 		 list->arch_name, ENDIANNESS);
 	snprintf(elf_platform, ELF_PLATFORM_SIZE, "%s%c",
 		 list->elf_name, ENDIANNESS);
 	elf_hwcap = list->elf_hwcap;
 
-	cpuid_init_hwcaps();
+	cpuid_init_hwcaps();	/*SH CPU 속성 Divide_instrs, ldrd/strd instructions 관련 정보를 추출하여 hwcaps에 셋팅*/
 
-#ifndef CONFIG_ARM_THUMB
-	elf_hwcap &= ~(HWCAP_THUMB | HWCAP_IDIVT);
+#ifndef CONFIG_ARM_THUMB	/*SH Y*/
+	elf_hwcap &= ~(HWCAP_THUMB | HWCAP_IDIVT);	/*SH 수행안함*/
 #endif
 
-	feat_v6_fixup();
+	feat_v6_fixup();	/*SH v6에 관련된 특징 fixup하는듯 분석은 따로 안함*/
 
-	cacheid_init();
-	cpu_init();
+	cacheid_init();		/*SH CTR Register를 통한 cacheid 변수에 캐시속성지정*/
+	cpu_init();		/*SH TPIDRPRW Register에 mm/percpu.c __per_cpu_offset[cpu] 값을 Write, IRQ, ABT, UND, SVC 모드 stack 할당*/
 }
 
 void __init dump_machine_table(void)
@@ -878,6 +880,7 @@ void __init setup_arch(char **cmdline_p)
 	struct machine_desc *mdesc;
 
 	setup_processor();
+	/*SH START_NEXT*/
 	mdesc = setup_machine_fdt(__atags_pointer);
 	if (!mdesc)
 		mdesc = setup_machine_tags(__atags_pointer, __machine_arch_type);

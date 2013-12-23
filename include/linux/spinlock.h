@@ -83,13 +83,13 @@
 /*
  * Pull the arch_spin*() functions/declarations (UP-nondebug doesn't need them):
  */
-#ifdef CONFIG_SMP
-# include <asm/spinlock.h>
+#ifdef CONFIG_SMP		/*SH Y*/
+# include <asm/spinlock.h>	/*SH this*/
 #else
 # include <linux/spinlock_up.h>
 #endif
 
-#ifdef CONFIG_DEBUG_SPINLOCK
+#ifdef CONFIG_DEBUG_SPINLOCK	/*SH Y*/
   extern void __raw_spin_lock_init(raw_spinlock_t *lock, const char *name,
 				   struct lock_class_key *key);
 # define raw_spin_lock_init(lock)				\

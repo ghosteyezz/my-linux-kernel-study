@@ -6,6 +6,7 @@
 
 #ifndef __ASSEMBLY__
 
+/*SH bits 수에 따른 unsigned long 타입의 비트맵 배열 생성 ex> 5bit = unsigned long[1], 36bit = unsigned long[2], 67bit = unsigned long[3] ... */
 #define DECLARE_BITMAP(name,bits) \
 	unsigned long name[BITS_TO_LONGS(bits)]
 

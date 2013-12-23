@@ -221,12 +221,12 @@
 # endif
 #endif
 
-#ifdef CONFIG_CPU_V7
-# ifdef CPU_NAME
+#ifdef CONFIG_CPU_V7	/*SH Y*/
+# ifdef CPU_NAME	/*SH N*/
 #  undef  MULTI_CPU
 #  define MULTI_CPU
 # else
-#  define CPU_NAME cpu_v7
+#  define CPU_NAME cpu_v7	/*SH this*/
 # endif
 #endif
 
@@ -248,17 +248,17 @@
 # endif
 #endif
 
-#ifndef MULTI_CPU
-#define cpu_proc_init			__glue(CPU_NAME,_proc_init)
-#define cpu_proc_fin			__glue(CPU_NAME,_proc_fin)
-#define cpu_reset			__glue(CPU_NAME,_reset)
-#define cpu_do_idle			__glue(CPU_NAME,_do_idle)
-#define cpu_dcache_clean_area		__glue(CPU_NAME,_dcache_clean_area)
-#define cpu_do_switch_mm		__glue(CPU_NAME,_switch_mm)
-#define cpu_set_pte_ext			__glue(CPU_NAME,_set_pte_ext)
-#define cpu_suspend_size		__glue(CPU_NAME,_suspend_size)
-#define cpu_do_suspend			__glue(CPU_NAME,_do_suspend)
-#define cpu_do_resume			__glue(CPU_NAME,_do_resume)
+#ifndef MULTI_CPU	/*SH N*/
+#define cpu_proc_init			__glue(CPU_NAME,_proc_init)	/*SH cpu_v7_proc_init*/
+#define cpu_proc_fin			__glue(CPU_NAME,_proc_fin)	/*SH cpu_v7_proc_fin*/
+#define cpu_reset			__glue(CPU_NAME,_reset)		/*SH cpu_v7_reset*/
+#define cpu_do_idle			__glue(CPU_NAME,_do_idle)	/*SH cpu_v7_do_idle*/
+#define cpu_dcache_clean_area		__glue(CPU_NAME,_dcache_clean_area)	/*SH cpu_v7_dcache_clean_area*/
+#define cpu_do_switch_mm		__glue(CPU_NAME,_switch_mm)	/*SH cpu_v7_switch_mm*/
+#define cpu_set_pte_ext			__glue(CPU_NAME,_set_pte_ext)	/*SH cpu_v7_set_pte_ext*/
+#define cpu_suspend_size		__glue(CPU_NAME,_suspend_size)	/*SH cpu_v7_suspend_size*/
+#define cpu_do_suspend			__glue(CPU_NAME,_do_suspend)	/*SH cpu_v7_do_suspend*/
+#define cpu_do_resume			__glue(CPU_NAME,_do_resume)	/*SH cpu_v7_do_resume*/
 #endif
 
 #endif

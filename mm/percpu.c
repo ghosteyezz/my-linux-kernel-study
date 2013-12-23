@@ -1828,7 +1828,7 @@ out_free_ar:
 }
 #endif /* BUILD_PAGE_FIRST_CHUNK */
 
-#ifndef	CONFIG_HAVE_SETUP_PER_CPU_AREA
+#ifndef	CONFIG_HAVE_SETUP_PER_CPU_AREA	/*SH N*/
 /*
  * Generic SMP percpu area setup.
  *

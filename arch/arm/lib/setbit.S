@@ -12,4 +12,4 @@
 #include "bitops.h"
 		.text
 
-bitop	_set_bit, orr
+bitop	_set_bit, orr	/*SH bitop 매크로를 이용하여  _set_bit 루틴 정의*//*SH 원자적 연산을 한다.*/

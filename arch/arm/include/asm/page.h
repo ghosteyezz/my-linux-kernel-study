@@ -99,8 +99,8 @@
 # endif
 #endif
 
-#ifdef CONFIG_CPU_COPY_V6
-# define MULTI_USER 1
+#ifdef CONFIG_CPU_COPY_V6	/*SH Y*/
+# define MULTI_USER 1	/*SH this*/
 #endif
 
 #if !defined(_USER) && !defined(MULTI_USER)

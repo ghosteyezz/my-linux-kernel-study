@@ -61,8 +61,8 @@
 #undef _TLB
 #undef MULTI_TLB
 
-#ifdef CONFIG_SMP_ON_UP
-#define MULTI_TLB 1
+#ifdef CONFIG_SMP_ON_UP	/*SH Y*/
+#define MULTI_TLB 1	/*SH this*/
 #endif
 
 #define v4_tlb_flags	(TLB_V4_U_FULL | TLB_V4_U_PAGE)

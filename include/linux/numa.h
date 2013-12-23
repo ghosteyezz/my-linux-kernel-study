@@ -2,10 +2,10 @@
 #define _LINUX_NUMA_H
 
 
-#ifdef CONFIG_NODES_SHIFT
+#ifdef CONFIG_NODES_SHIFT	/*SH N*/
 #define NODES_SHIFT     CONFIG_NODES_SHIFT
-#else
-#define NODES_SHIFT     0
+#else	/*SH this*/
+#define NODES_SHIFT     0	/*SH this*/
 #endif
 
 #define MAX_NUMNODES    (1 << NODES_SHIFT)

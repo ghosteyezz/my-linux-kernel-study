@@ -14,7 +14,7 @@
 #include <linux/typecheck.h>
 #include <asm/irqflags.h>
 
-#ifdef CONFIG_TRACE_IRQFLAGS
+#ifdef CONFIG_TRACE_IRQFLAGS	/*SH N*/
   extern void trace_softirqs_on(unsigned long ip);
   extern void trace_softirqs_off(unsigned long ip);
   extern void trace_hardirqs_on(void);
@@ -30,7 +30,7 @@
 # define INIT_TRACE_IRQFLAGS	.softirqs_enabled = 1,
 #else
 # define trace_hardirqs_on()		do { } while (0)
-# define trace_hardirqs_off()		do { } while (0)
+# define trace_hardirqs_off()		do { } while (0)	/*SH this*/
 # define trace_softirqs_on(ip)		do { } while (0)
 # define trace_softirqs_off(ip)		do { } while (0)
 # define trace_hardirq_context(p)	0
@@ -56,7 +56,7 @@
 /*
  * Wrap the arch provided IRQ routines to provide appropriate checks.
  */
-#define raw_local_irq_disable()		arch_local_irq_disable()
+#define raw_local_irq_disable()		arch_local_irq_disable()	/*SH this*/
 #define raw_local_irq_enable()		arch_local_irq_enable()
 #define raw_local_irq_save(flags)			\
 	do {						\
@@ -70,7 +70,7 @@
 	} while (0)
 #define raw_local_save_flags(flags)			\
 	do {						\
-		typecheck(unsigned long, flags);	\
+		typecheck(unsigned long, flags);	/*SH typecheck : 두번째 인자의 타입이 첫번째 인자의 타입인지 검사하고, 같지 않다면 컴파일시 경고출력*/\
 		flags = arch_local_save_flags();	\
 	} while (0)
 #define raw_irqs_disabled_flags(flags)			\
@@ -88,7 +88,7 @@
 #ifdef CONFIG_TRACE_IRQFLAGS_SUPPORT	/*SH Y*/
 #define local_irq_enable() \
 	do { trace_hardirqs_on(); raw_local_irq_enable(); } while (0)
-#define local_irq_disable() \
+#define local_irq_disable() /*SH this*/ \
 	do { raw_local_irq_disable(); trace_hardirqs_off(); } while (0)
 #define local_irq_save(flags)				\
 	do {						\
@@ -117,11 +117,11 @@
 		raw_irqs_disabled_flags(flags);		\
 	})
 
-#define irqs_disabled()					\
+#define irqs_disabled()					/*SH this*/\
 	({						\
 		unsigned long _flags;			\
-		raw_local_save_flags(_flags);		\
-		raw_irqs_disabled_flags(_flags);	\
+		raw_local_save_flags(_flags);		/*SH _flags에 현재 cpsr 레지스터값을 읽어옴*/\
+		raw_irqs_disabled_flags(_flags);	/*SH _flags(cpsr)의 IRQ 비트를 AND 연산 한 값을 리턴*/\
 	})
 
 #define safe_halt()				\

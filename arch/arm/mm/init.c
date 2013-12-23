@@ -305,11 +305,11 @@ int pfn_valid(unsigned long pfn)
 EXPORT_SYMBOL(pfn_valid);
 #endif
 
-#ifndef CONFIG_SPARSEMEM
+#ifndef CONFIG_SPARSEMEM	/*SH Y*/
 static void __init arm_memory_present(void)
 {
 }
-#else
+#else	/*SH this*/
 static void __init arm_memory_present(void)
 {
 	struct memblock_region *reg;

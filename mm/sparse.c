@@ -19,8 +19,8 @@
  *
  * 1) mem_section	- memory sections, mem_map's for valid memory
  */
-#ifdef CONFIG_SPARSEMEM_EXTREME
-struct mem_section *mem_section[NR_SECTION_ROOTS]
+#ifdef CONFIG_SPARSEMEM_EXTREME	/*SH Y*/
+struct mem_section *mem_section[NR_SECTION_ROOTS]	/*SH this*/
 	____cacheline_internodealigned_in_smp;
 #else
 struct mem_section mem_section[NR_SECTION_ROOTS][SECTIONS_PER_ROOT]
@@ -28,7 +28,7 @@ struct mem_section mem_section[NR_SECTION_ROOTS][SECTIONS_PER_ROOT]
 #endif
 EXPORT_SYMBOL(mem_section);
 
-#ifdef NODE_NOT_IN_PAGE_FLAGS
+#ifdef NODE_NOT_IN_PAGE_FLAGS	/*SH undefined*/
 /*
  * If we did not store the node number in the page then we have to
  * do a lookup in the section_to_node_table in order to find which
@@ -50,8 +50,8 @@ static void set_section_nid(unsigned long section_nr, int nid)
 {
 	section_to_node_table[section_nr] = nid;
 }
-#else /* !NODE_NOT_IN_PAGE_FLAGS */
-static inline void set_section_nid(unsigned long section_nr, int nid)
+#else /* !NODE_NOT_IN_PAGE_FLAGS */	/*SH this*/
+static inline void set_section_nid(unsigned long section_nr, int nid)	/*SH this*/
 {
 }
 #endif
@@ -176,7 +176,7 @@ void __init memory_present(int nid, unsigned long start, unsigned long end)
 		struct mem_section *ms;
 
 		sparse_index_init(section, nid);
-		set_section_nid(section, nid);
+		set_section_nid(section, nid);	/*SH Null function*/
 
 		ms = __nr_to_section(section);
 		if (!ms->section_mem_map)
@@ -474,7 +474,7 @@ void __init sparse_init(void)
 	int nodeid_begin = 0;
 	unsigned long pnum_begin = 0;
 	unsigned long usemap_count;
-#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
+#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER	/*SH N*/
 	unsigned long map_count;
 	int size2;
 	struct page **map_map;
@@ -484,7 +484,7 @@ void __init sparse_init(void)
 	BUILD_BUG_ON(!is_power_of_2(sizeof(struct mem_section)));
 
 	/* Setup pageblock_order for HUGETLB_PAGE_SIZE_VARIABLE */
-	set_pageblock_order();
+	set_pageblock_order();	/*SH Null function*/
 
 	/*
 	 * map is using big page (aka 2M in x86 64 bit)
@@ -537,7 +537,7 @@ void __init sparse_init(void)
 	sparse_early_usemaps_alloc_node(usemap_map, pnum_begin, NR_MEM_SECTIONS,
 					 usemap_count, nodeid_begin);
 
-#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
+#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER	/*SH N*/
 	size2 = sizeof(struct page *) * NR_MEM_SECTIONS;
 	map_map = alloc_bootmem(size2);
 	if (!map_map)
@@ -587,7 +587,7 @@ void __init sparse_init(void)
 		if (!usemap)
 			continue;
 
-#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER
+#ifdef CONFIG_SPARSEMEM_ALLOC_MEM_MAP_TOGETHER	/*SH N*/
 		map = map_map[pnum];
 #else
 		map = sparse_early_mem_map_alloc(pnum);

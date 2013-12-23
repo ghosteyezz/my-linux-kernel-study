@@ -11,7 +11,7 @@
 #define CPUID_MPUIR	4
 #define CPUID_MPIDR	5
 
-#ifdef CONFIG_CPU_V7M
+#ifdef CONFIG_CPU_V7M	/*SH N*/
 #define CPUID_EXT_PFR0	0x40
 #define CPUID_EXT_PFR1	0x44
 #define CPUID_EXT_DFR0	0x48
@@ -26,7 +26,7 @@
 #define CPUID_EXT_ISAR3	0x6c
 #define CPUID_EXT_ISAR4	0x70
 #define CPUID_EXT_ISAR5	0x74
-#else
+#else	/*SH this*/
 #define CPUID_EXT_PFR0	"c1, 0"
 #define CPUID_EXT_PFR1	"c1, 1"
 #define CPUID_EXT_DFR0	"c1, 2"
@@ -94,7 +94,7 @@ extern unsigned int processor_id;
  * any is_smp() tests, which can cause undefined instruction aborts on
  * ARM1136 r0 due to the missing extended CP15 registers.
  */
-#define read_cpuid_ext(ext_reg)						\
+#define read_cpuid_ext(ext_reg)						/*SH this*/\
 	({								\
 		unsigned int __val;					\
 		asm("mrc	p15, 0, %0, c0, " ext_reg		\
@@ -136,15 +136,15 @@ static inline unsigned int __attribute_const__ read_cpuid_ext(unsigned offset)
 
 #endif /* ifdef CONFIG_CPU_CP15 / else */
 
-#ifdef CONFIG_CPU_CP15
+#ifdef CONFIG_CPU_CP15	/*SH Y*/
 /*
  * The CPU ID never changes at run time, so we might as well tell the
  * compiler that it's constant.  Use this function to read the CPU ID
  * rather than directly reading processor_id or read_cpuid() directly.
  */
-static inline unsigned int __attribute_const__ read_cpuid_id(void)
+static inline unsigned int __attribute_const__ read_cpuid_id(void)	/*SH this*/
 {
-	return read_cpuid(CPUID_ID);
+	return read_cpuid(CPUID_ID);	/*SH A.R.M B4.1.105 MIDR 읽어옴*/
 }
 
 #elif defined(CONFIG_CPU_V7M)
@@ -180,7 +180,7 @@ static inline unsigned int __attribute_const__ xscale_cpu_arch_version(void)
 
 static inline unsigned int __attribute_const__ read_cpuid_cachetype(void)
 {
-	return read_cpuid(CPUID_CACHETYPE);
+	return read_cpuid(CPUID_CACHETYPE);	/*SH A.R.M B.4.1.42 CTR, Cache Type Register*/
 }
 
 static inline unsigned int __attribute_const__ read_cpuid_tcmstatus(void)
@@ -190,10 +190,7 @@ static inline unsigned int __attribute_const__ read_cpuid_tcmstatus(void)
 
 static inline unsigned int __attribute_const__ read_cpuid_mpidr(void)
 {
-    /*SH 131121
-     * A.R.M B4.1.106 : MPIDR
-     * */
-	return read_cpuid(CPUID_MPIDR);
+	return read_cpuid(CPUID_MPIDR);	/*SH A.R.M B4.1.106 MPIDR, Multiprocessor Affinity Register*/
 }
 
 /*
