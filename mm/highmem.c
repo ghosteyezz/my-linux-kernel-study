@@ -329,10 +329,12 @@ static struct page_address_map page_address_maps[LAST_PKMAP];
 /*
  * Hash table bucket
  */
+/*SH PA_HASH_ORDER : 7*/
 static struct page_address_slot {
 	struct list_head lh;			/* List of page_address_maps */
 	spinlock_t lock;			/* Protect this bucket's list */
-} ____cacheline_aligned_in_smp page_address_htable[1<<PA_HASH_ORDER];	/*SH PA_HASH_ORDER : 7*/
+} ____cacheline_aligned_in_smp page_address_htable[1<<PA_HASH_ORDER];
+/*SH page_address_htable[128]; lh, lock initialized*/
 
 static struct page_address_slot *page_slot(const struct page *page)
 {
@@ -416,8 +418,10 @@ void __init page_address_init(void)	/*SH this*/
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(page_address_htable); i++) {
-		INIT_LIST_HEAD(&page_address_htable[i].lh);	/*SH list 초기화*/
-		spin_lock_init(&page_address_htable[i].lock);	/*SH raw spin_lock 초기화*/
+		INIT_LIST_HEAD(&page_address_htable[i].lh);
+		/*SH list 초기화*/
+		spin_lock_init(&page_address_htable[i].lock);
+		/*SH raw spin_lock 초기화*/
 	}
 }
 

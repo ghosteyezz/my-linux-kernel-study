@@ -522,7 +522,7 @@ ENDPROC(__fixup_smp)
 	.pushsection .data
 	.globl	smp_on_up
 smp_on_up:
-	ALT_SMP(.long	1)
+	ALT_SMP(.long	1)/*SH long smp_on_up = 1*/
 	ALT_UP(.long	0)
 	.popsection
 #endif

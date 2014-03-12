@@ -466,40 +466,28 @@ void notrace cpu_init(void)
 #endif
 }
 
+/*SH NR_CPUS:2, MPIDR_INVALID:0xff000000 */
 u32 __cpu_logical_map[NR_CPUS] = { [0 ... NR_CPUS-1] = MPIDR_INVALID };
+/*SH [0] = 0*/
+/*SH [1] = 1*/
+/*SH [2] = 2*/
+/*SH [3] = 3*/
 
 void __init smp_setup_processor_id(void)
 {
 	int i;
 	u32 mpidr = is_smp() ? read_cpuid_mpidr() & MPIDR_HWID_BITMASK : 0;
-	u32 cpu = MPIDR_AFFINITY_LEVEL(mpidr, 0);	/*SH Affinity Level 0(The most significant affinity level field)값 구함*/
+	u32 cpu = MPIDR_AFFINITY_LEVEL(mpidr, 0);
+	/*SH Affinity Level 0(The most significant affinity level field)*/
+	/*SH =0 으로 가정*/
 
 	cpu_logical_map(0) = cpu;
+	/*SH __cpu_logical_map[ 0 ] = 0*/
 	for (i = 1; i < nr_cpu_ids; ++i)
 		cpu_logical_map(i) = i == cpu ? 0 : i;
-
-	/*SH 131121
-	 * cpu = 0이라고 가정하면,
-	 * __cpu_logical_map[0] = 0
-	 * __cpu_logical_map[1] = 1
-	 * __cpu_logical_map[2] = 2
-	 * __cpu_logical_map[3] = 3
-	 * cpu = 1이라고 가정하면,
-	 * __cpu_logical_map[0] = 1
-	 * __cpu_logical_map[1] = 0
-	 * __cpu_logical_map[2] = 2
-	 * __cpu_logical_map[3] = 3
-	 * cpu = 2이라고 가정하면,
-	 * __cpu_logical_map[0] = 2
-	 * __cpu_logical_map[1] = 1
-	 * __cpu_logical_map[2] = 0
-	 * __cpu_logical_map[3] = 3
-	 * cpu = 3이라고 가정하면,
-	 * __cpu_logical_map[0] = 3
-	 * __cpu_logical_map[1] = 1
-	 * __cpu_logical_map[2] = 2
-	 * __cpu_logical_map[3] = 0
-	 * */
+		/*SH __cpu_logical_map[ 1 ] = 1*/
+		/*SH __cpu_logical_map[ 2 ] = 2*/
+		/*SH __cpu_logical_map[ 3 ] = 3*/
 
 	/*
 	 * clear __my_cpu_offset on boot CPU to avoid hang caused by
@@ -507,6 +495,7 @@ void __init smp_setup_processor_id(void)
 	 * access percpu variable inside lock_release
 	 */
 	set_my_cpu_offset(0);
+	/* Set TPIDRPRW = 0 */
 
 	printk(KERN_INFO "Booting Linux on physical CPU 0x%x\n", mpidr);
 }
@@ -880,7 +869,6 @@ void __init setup_arch(char **cmdline_p)
 	struct machine_desc *mdesc;
 
 	setup_processor();
-	/*SH START_NEXT*/
 	mdesc = setup_machine_fdt(__atags_pointer);
 	if (!mdesc)
 		mdesc = setup_machine_tags(__atags_pointer, __machine_arch_type);

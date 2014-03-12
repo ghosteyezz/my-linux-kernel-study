@@ -109,6 +109,7 @@ extern void tc_init(void);
  * flag is set.
  */
 bool early_boot_irqs_disabled __read_mostly;
+/*SH =true*/
 
 enum system_states system_state __read_mostly;
 EXPORT_SYMBOL(system_state);
@@ -434,12 +435,22 @@ void __init parse_early_param(void)
 
 static void __init boot_cpu_init(void)
 {
-	int cpu = smp_processor_id();	/*SH 현재 사용중인 cpu id 얻음*/
+	int cpu = smp_processor_id();
+	/*SH 현재 사용중인 cpu id 얻음*/
+	/*SH =0*/
+	
 	/* Mark the boot cpu "present", "online" etc for SMP and UP case */
-	set_cpu_online(cpu, true);	/*SH cpu_online_bit 비트맵(배열)에 현재 cpu 비트셋*/
-	set_cpu_active(cpu, true);	/*SH cpu_active_bit 비트맵(배열)에 현재 cpu 비트셋*/
-	set_cpu_present(cpu, true);	/*SH cpu_persent_bit 비트맵(배열)에 현재 cpu 비트셋*/
-	set_cpu_possible(cpu, true);	/*SH cpu_possible_bit 비트맵(배열)에 현재 cpu 비트셋*/
+	set_cpu_online(cpu, true);
+	/*SH cpu_online_bit 비트맵(배열)에 현재 cpu 비트셋*/
+	
+	set_cpu_active(cpu, true);
+	/*SH cpu_active_bit 비트맵(배열)에 현재 cpu 비트셋*/
+	
+	set_cpu_present(cpu, true);
+	/*SH cpu_persent_bit 비트맵(배열)에 현재 cpu 비트셋*/
+	
+	set_cpu_possible(cpu, true);
+	/*SH cpu_possible_bit 비트맵(배열)에 현재 cpu 비트셋*/
 }
 
 /*SH 131121
@@ -484,26 +495,40 @@ asmlinkage void __init start_kernel(void)
 	 * Need to run as early as possible, to initialize the
 	 * lockdep hash:
 	 */
-	lockdep_init();			/*SH Empty function*/
-	smp_setup_processor_id();	/*SH Affinity Level 0의 값에 따라 __cpu_logical_map[] 셋팅, TPIDRPRW = 0 셋팅*/
-	debug_objects_early_init();	/*SH Empty function*/
+	lockdep_init();
+	/*SH Empty function*/
+	
+	smp_setup_processor_id();
+	/*SH Affinity Level 0의 값에 따라 __cpu_logical_map셋팅
+	 *TPIDRPRW = 0 셋팅*/
+	
+	debug_objects_early_init();
+	/*SH Empty function*/
 
 	/*
 	 * Set up the the initial canary ASAP:
 	 */
-	boot_init_stack_canary();	/*SH Empty function*/
+	boot_init_stack_canary();
+	/*SH Empty function*/
 
-	cgroup_init_early();		/*SH Empty function*/
+	cgroup_init_early();
+	/*SH Empty function*/
 
-	local_irq_disable();		/*SH Interrupt disable 한다*/
+	local_irq_disable();
+	/*SH Interrupt disable 한다*/
+
 	early_boot_irqs_disabled = true;
 
 /*
  * Interrupts are still disabled. Do necessary setups, then
  * enable them
  */
-	boot_cpu_init();	/*SH 현재 cpu id 얻어 cpu_mask_bit(online, active, persent, passible)에 비트셋*/
-	page_address_init();	/*SH page_address_htable 배열의 list, spin_lock 초기화  */
+	boot_cpu_init();
+	/*SH 현재 cpu id 얻어
+	 * cpu_mask_bit(online, active, persent, passible)에 비트셋*/
+
+	page_address_init();
+	/*SH page_address_htable 배열의 list, spin_lock 초기화  */
 	pr_notice("%s", linux_banner);	/*SH linux_banner 출력*/
 	/*SH START_NEXT*/
 	setup_arch(&command_line);

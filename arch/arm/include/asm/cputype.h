@@ -51,6 +51,7 @@
 #define MPIDR_HWID_BITMASK 0xFFFFFF
 
 #define MPIDR_INVALID (~MPIDR_HWID_BITMASK)
+/*SH ~0xffffff = 0xff000000*/
 
 #define MPIDR_LEVEL_BITS 8
 #define MPIDR_LEVEL_MASK ((1 << MPIDR_LEVEL_BITS) - 1)
@@ -180,7 +181,8 @@ static inline unsigned int __attribute_const__ xscale_cpu_arch_version(void)
 
 static inline unsigned int __attribute_const__ read_cpuid_cachetype(void)
 {
-	return read_cpuid(CPUID_CACHETYPE);	/*SH A.R.M B.4.1.42 CTR, Cache Type Register*/
+	return read_cpuid(CPUID_CACHETYPE);
+	/*SH A.R.M B.4.1.42 CTR, Cache Type Register*/
 }
 
 static inline unsigned int __attribute_const__ read_cpuid_tcmstatus(void)
@@ -190,7 +192,8 @@ static inline unsigned int __attribute_const__ read_cpuid_tcmstatus(void)
 
 static inline unsigned int __attribute_const__ read_cpuid_mpidr(void)
 {
-	return read_cpuid(CPUID_MPIDR);	/*SH A.R.M B4.1.106 MPIDR, Multiprocessor Affinity Register*/
+	return read_cpuid(CPUID_MPIDR);
+	/*SH A.R.M B4.1.106 MPIDR, Multiprocessor Affinity Register*/
 }
 
 /*
